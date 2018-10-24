@@ -26,7 +26,6 @@ class ADS122C04:
 
     def __init__(self, I2Cbus, I2Caddr, **kwargs):
         self.pi = pigpio.pi()
-        self.Status = "absent"
         self.I2Cbus = I2Cbus
         self.I2Caddr = I2Caddr
         self.SetupParms = kwargs

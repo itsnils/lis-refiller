@@ -5,7 +5,7 @@ from contextlib import suppress
 
 import pump
 import weighingring
-import controlloop
+import ringcontrolloop
 
 LedGPIO = {"Red": (6, 19),
            "Green": (5, 13),
@@ -35,7 +35,7 @@ Rings = [weighingring.WeighingRing(bus=0),
 #create weighing ring control loop thread objects and start
 threads = []
 for Ring in Rings:
-    thread = controlloop.RingControlLoop(Ring, Pump)
+    thread = ringcontrolloop.RingControlLoop(Ring, Pump)
     thread.setName("RingControlLoop" + str(Ring.I2Cbus))
     threads.append(thread)
     # thread.start() fixme

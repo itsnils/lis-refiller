@@ -2,8 +2,8 @@ from contextlib import suppress
 import threading
 import time
 
-import ads122c04
-import mc24aa025e48
+import ads122c04  #24-bit ADC TI ADS122C04
+import mc24aa025e48 #1024-bit eeprom with unique 48-bit ID Microchip MC24AA025E48
 import runningmean
 
 class WeighingRing(ads122c04.ADS122C04):
