@@ -30,22 +30,27 @@ class MC24AA025E48:
                 return True
             except pigpio.error:
                 print("Faild to open I2C bus ", self.I2Cbus, " address ", self.I2Caddr)
-                if i == self.Retries:
+                if i >= self.Retries:
                     self.Handle = None
-                    raise ConnectionError(("couldn't close I2C bus " + self.I2Cbus))
-                else:
-                    raise ConnectionError(("couldn't close I2C bus " + self.I2Cbus + " handle " + self.Handle))
-
-    def i2c_close(self):
-        for i in range(self.Retries+1):
-            try:
-                self.pi.i2c_close(self.Handle)
-            except pigpio.error:
-                if i == self.Retries:
-                    raise ConnectionError(("couldn't close I2C bus " + self.I2Cbus + " handle " + self.Handle))
+                    raise # ConnectionError(("couldn't close I2C bus " + self.I2Cbus))
                 else:
                     time.sleep(self.I2Cwait)
                     continue
+
+    def i2c_close(self):
+        if self.Handle in range(255):
+            for i in range(self.Retries+1):
+                try:
+                    self.pi.i2c_close(self.Handle)
+                    self.Handle = None
+                    return True
+                except pigpio.error:
+                    if i >= self.Retries:
+                        self.Handle = None
+                        raise # ConnectionError(("couldn't close I2C bus " + self.I2Cbus + " handle " + self.Handle))
+                    else:
+                        time.sleep(self.I2Cwait)
+                        continue
 
     def read(self, addr, count):
         """reads 1 to 32 byte starting at address (0x00-0xFF)"""
@@ -54,13 +59,13 @@ class MC24AA025E48:
         for i in range(self.Retries + 1):
             try:
                 num, data = self.pi.i2c_read_i2c_block_data(self.Handle, addr, count)
+                return data
             except pigpio.error:
                 if i >= self.Retries:
-                    raise ConnectionError("could not read from I2C bus ", self.I2Cbus)
+                    raise # ConnectionError("could not read from I2C bus ", self.I2Cbus)
                 else:
                     time.sleep(self.I2Cwait)
                     continue
-        return data
 
     def read_string(self, addr):
         """read length from addr and string of length from addr+1"""
@@ -91,11 +96,12 @@ class MC24AA025E48:
             try:
                 self.pi.i2c_write_device(self.Handle, bytearray((addr,)) + bytearray(data))
                 time.sleep(self.I2Cwait)
-                break
+                return
             except pigpio.error:
-                if i == self.Retries:
-                    raise ConnectionError
+                if i >= self.Retries:
+                    raise # ConnectionError
                 else:
+                    time.sleep(self.I2Cwait)
                     continue
 
     def write_string(self, addr, s):
@@ -184,19 +190,15 @@ class EEPROM(MC24AA025E48):
 
 
 
-
-
-
-
-
-#try:
 if __name__ == '__main__':
-    e = EEPROM(1, 0x51)
-    e.i2c_open()
-    print(e.read_id())
-    print(e.update())
-    # print(e.read_byte(3))
-    e.i2c_close()
+    try:
+        e = EEPROM(1, 0x51)
+        e.i2c_open()
+        print(e.read_id())
+        print(e.update())
+        # print(e.read_byte(3))
+    finally:
+        e.i2c_close()
 
 
 
