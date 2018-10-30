@@ -2,9 +2,11 @@ from contextlib import suppress
 import threading
 import time
 
+import pigpio
 import ads122c04  #24-bit ADC TI ADS122C04
 import mc24aa025e48 #1024-bit eeprom with unique 48-bit ID Microchip MC24AA025E48
 import runningmean
+import config
 
 class WeighingRing(ads122c04.ADS122C04):
     I2Caddr = 0x45
@@ -19,10 +21,9 @@ class WeighingRing(ads122c04.ADS122C04):
                     }
     Ch1Parms = {'MUX': 0}
     Ch2Parms = {'MUX': 7}
-    RetriesDefault = 5
-    LedStates = ("Off", "SteadyRed", "FastRed", "SlowRed", "FastGreen", "SlowGreen", "SteadyGreen")
 
     def __init__(self, bus):
+        self.Config = config.load()
         self.ID = None
         self.Handle = None
         self.Status = "absent"
@@ -31,14 +32,14 @@ class WeighingRing(ads122c04.ADS122C04):
         self.Weight = 0
         self.Mean = runningmean.RunningMean(self.RunningMeanWidth)
         super().__init__(I2Cbus=bus, I2Caddr=self.I2Caddr, **self.GeneralParms)
-        self.EEPROM = mc24aa025e48.MC24AA025E48(bus, self.EEPROM_I2Caddr)
+        self.EEPROM = mc24aa025e48.EEPROM(bus, self.EEPROM_I2Caddr)
 
         self._LED = "SlowRed"  # fixme
 
     def connect(self):
         try:
             self.EEPROM.i2c_open()
-            self.ID = self.EEPROM.read_id()
+            self.EEPROM.read_config()
             print("on bus ", self.I2Cbus, "found weighing ring ", self.ID)
             self.i2c_open()
             return True
@@ -53,6 +54,7 @@ class WeighingRing(ads122c04.ADS122C04):
             self.reset()
             time.sleep(0.1)
             self.set_parms(**self.SetupParms)
+
             return True
         except pigpio.error:
             return False
@@ -63,12 +65,14 @@ class WeighingRing(ads122c04.ADS122C04):
         v = (v1 + v2)
         return v
 
-    @property
-    def LED(self):
-        return self._LED
-    @LED.setter
-    def LED(self, value):
-        self._LED = value
-
+    def read_weight(self, average=False, tempcomp=False,):
+        if average:
+            w = self.read2() * self.EEPROM.AdcGain + self.EEPROM.AdcOffset # fixme
+        else:
+            w = self.read2() * self.EEPROM.AdcGain + self.EEPROM.AdcOffset
+        if tempcomp:
+            w = w * self.EEPROM.AdcTemperatureGain + self.EEPROM.AdcTemperatureOffset
+        self.Weight = w
+        return w
 
 

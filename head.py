@@ -26,6 +26,11 @@ import time
 
 import pigpio
 
+class ControllerChannels:
+
+    pass
+
+
 class Head:
 
     LedGPIO = {"Red": (6, 19),
@@ -40,7 +45,17 @@ class Head:
               "SteadyGreen": ("Green",)
               }
 
-    def __init__(self):
-        pi = pigpio.Pi()
 
-        pi.callback()
+    def __init__(self):
+        self.pi = pigpio.pi
+
+        self.pi.set_glitch_filter(21, 100000)
+        self.pi.set_glitch_filter(17, 100000)
+        cbButton = [self.pi.callback(21, pigpio.RISING_EDGE, self.button_handler),
+                    self.pi.callback(17, pigpio.RISING_EDGE, self.button_handler)
+                    ]
+
+
+    def button_handler(self, gpio, level, tick):
+        pass
+

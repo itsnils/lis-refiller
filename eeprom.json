@@ -1,0 +1,78 @@
+{
+  "801F1232380Ax": {
+    "RingType": [
+      3,
+      "byte",
+      55
+    ],
+    "AdcGain": [
+      4,
+      "float32",
+      1
+    ],
+    "AdcOffset": [
+      8,
+      "float32",
+      0
+    ],
+    "AdcTempGain": [
+      12,
+      "float32",
+      1
+    ],
+    "AdcTempOffset": [
+      16,
+      "float32",
+      0
+    ]
+  },
+  "801F1232330C": {
+    "RingType": [
+      3,
+      "byte",
+      1, 22
+    ],
+    "AdcGain": [
+      4,
+      "float32",
+      1, 1
+    ],
+    "AdcOffset": [
+      8,
+      "float32",
+      0, 0
+    ],
+    "AdcTempGain": [
+      12,
+      "float32",
+      1, 1
+    ],
+    "AdcTempOffset": [
+      16,
+      "float32",
+      0, 0
+    ]
+  },
+  "TEMPLATE": {
+    "RingType": [
+      3,
+      "byte"
+    ],
+    "AdcGain": [
+      4,
+      "float32"
+    ],
+    "AdcOffset": [
+      8,
+      "float32"
+    ],
+    "AdcTempGain": [
+      12,
+      "float32"
+    ],
+    "AdcTempOffset": [
+      16,
+      "float32"
+    ]
+  }
+}

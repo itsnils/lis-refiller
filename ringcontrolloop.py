@@ -2,6 +2,10 @@ import threading
 import time
 from contextlib import suppress
 
+import config
+
+
+
 class RingControlLoop(threading.Thread):
 
     def __init__(self, ring, pump):
@@ -10,6 +14,7 @@ class RingControlLoop(threading.Thread):
         self.Ring = ring
         self.Pump = pump
         self.Active = True
+        self.Config = config.load()
 
     def run(self):
         """run the control loop for the weighing ring at a fixed interval (or as fast as possible) and update the status of the weighing ring"""

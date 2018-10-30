@@ -1,3 +1,50 @@
 {
-  SerialNumber: 0
+  "Left":{
+    "RingType": "38240B",
+    "Zero": null,
+    "SerialNumber": "",
+    "I2cBus": 0,
+    "AdcGain": 0.0,
+    "AdcOffset": 0.0,
+    "AdcTempGain": 0.0,
+    "AdcTempOffset": 0.0,
+    "ButtonGpio": 21,
+    "LedGpio": {
+      "Red": 6,
+      "Green": 5},
+    "PumpDir": -1},
+
+  "Right":{
+    "RingType": "38240B",
+    "Zero": null,
+    "SerialNumber": "",
+    "I2cBus": 1,
+    "AdcGain": 1.0,
+    "AdcOffset": 0.0,
+    "AdcTempGain": 1.0,
+    "AdcTempOffset": 0.0,
+    "ButtonGpio": 17,
+    "LedGpio": {
+      "Red": 19,
+      "Green": 13},
+    "PumpDir": 1
+  },
+
+  "SerialNumber": "",
+  "ValveType": "Rectifier",
+  "WifiButtonGpio": 18,
+  "LedGpio": {
+    "Red": 20,
+    "Green": 16,
+    "Blue": 26},
+  "BuzzerGpio": 12,
+  "LedSequence": {
+    "Off": [0,0],
+    "Fast": [1,0],
+    "Slow": [1,1,1,1,0,0,0,0],
+    "Steady": [1,1]},
+  "LedInterval": 0.25,
+  "I2cRetries": 5
+
+  }
 }
