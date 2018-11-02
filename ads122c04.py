@@ -1,6 +1,6 @@
 """Datasheet URL http://www.ti.com/lit/ds/symlink/ads122c04.pdf """
-
-import pigpio
+from contextlib import suppress
+import blupio
 import time
 
 
@@ -24,56 +24,55 @@ class ADS122C04:
                 'RESERVED': (3, 0, 2),  # END ??????????
                 }
 
-    def __init__(self, I2Cbus, I2Caddr, **kwargs):
-        self.pi = pigpio.pi()
+    def __init__(self, I2Cbus, I2Caddr, retries = 5, I2Cwait = 0.01, **kwargs):
+        self.pi = blupio.pi()
         self.I2Cbus = I2Cbus
         self.I2Caddr = I2Caddr
+        self.Handle = None
+        self.Retries = retries
+        self.I2Cwait = I2Cwait
         self.SetupParms = kwargs
+        self.Temperature = None
 
+    # fixme
+    """ 
     def __enter__(self):
         self.i2c_open()
         pass
-
+        
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.i2c_close()
+    """
 
     def i2c_open(self):
-        try:
-            self.Handle = self.pi.i2c_open(self.I2Cbus, self.I2Caddr)
-            # print("Openend I2C bus ", self.I2Cbus, " address ", self.I2Caddr, " at handle ", self.Handle)  # fixme
-            return True
-        except pigpio.error:
-            # print("pigpio.error: ", pigpio.error)  # fixme
-            # print("Faild to open I2C bus ", self.I2Cbus, " address ", self.I2Caddr)  # fixme
-            self.Handle = None
-            raise ConnectionError
+        self.Handle = self.pi.i2c_open(self.I2Cbus, self.I2Caddr)
+        return True
 
     def i2c_close(self):
-        try:
-            self.pi.i2c_close(self.Handle)
-        except pigpio.error:
-            pass
+        with suppress(Exception): self.pi.i2c_close(self.Handle)
+        self.Handle = None
 
     def read(self, **kwargs):
         """single ADC read operation"""
-        try:
-            self.set_parms(**kwargs)
-            self.start()
+        self.set_parms(**kwargs)
+        self.start()
+        time.sleep(0.01)
+        while not self.parm('DRDY'):
+            # print("waiting for DRDY")
             time.sleep(0.01)
-            while not self.parm('DRDY'):
-                # print("waiting for DRDY") fixme
-                time.sleep(0.01)
-            c, r = self.pi.i2c_read_i2c_block_data(self.Handle, 0x10, 3)
-            val = int.from_bytes(r, "big", signed=True)
-            return val
-        #except pigpio.error:
-        except TypeError:
-            print('pigpio.error : ', pigpio.error) #fixme
-            raise
+        c, r = self.pi.i2c_read_i2c_block_data(self.Handle, 0x10, 3)
+        val = int.from_bytes(r, "big", signed=True)
+        return val
 
     def read_t(self):
         """read ADC internal temp sensor"""
-        self.Temperature = self.read(TS=1)
+        a = self.read(TS=1)
+        b = a >> 10
+        if (b & 0b10000000000000):
+            t = ((b - 1) ^ 0b11111111111111) * -0.03125
+        else:
+            t = b * 0.03125
+        self.Temperature = t
         self.set_parms(TS=0)
         return self.Temperature
 
@@ -82,7 +81,6 @@ class ADS122C04:
         for parm in kwargs:
             self.parm(parm, kwargs[parm])
 
-
     def parm(self, name, val=None):
 
         if name in self.register:
@@ -90,18 +88,17 @@ class ADS122C04:
             bitpos = self.register[name][1]   # starting bit position (lsb)
             bitnum = self.register[name][2]   # number of bits
             mask = (1 << bitnum) - 1 << bitpos   # generate bitmask
-            cmd =  0x20 | (regnum << 2)   # assemble read command byte
+            cmd = 0x20 | (regnum << 2)   # assemble read command byte
             currentbyte = self.pi.i2c_read_byte_data(self.Handle, cmd)
-            if val != None:
-                # print("setting ", name, " to ", val) fixme
+            if val is not None:
+                # print("setting ", name, " to ", val)
                 newbyte = (currentbyte & ~mask) | (val << bitpos)
                 cmd = 0x40 | (regnum << 2)  # assemble write command byte
                 self.pi.i2c_write_byte_data(self.Handle, cmd, newbyte)
-                # print(hex(cmd), hex(newbyte)) fixme
-            return  (currentbyte & mask) >> bitpos   # extract value read
+            return (currentbyte & mask) >> bitpos   # extract value read
 
     def reset(self):
-        self.pi.i2c_write_byte(self.Handle, 0x06) # Reset
+        self.pi.i2c_write_byte(self.Handle, 0x06)  # Reset
 
     def start(self):
         self.pi.i2c_write_byte(self.Handle, 0x08)  # Start/Sync
@@ -110,4 +107,14 @@ class ADS122C04:
         self.start()
 
 
-
+if __name__ == '__main__':
+    bus = 0
+    adc = ADS122C04(bus, I2Caddr=0x45)
+    adc.i2c_open()
+    try:
+        while True:
+            L, R, T = adc.read(GAIN=3, MUX=0), adc.read(GAIN=3, MUX=7), adc.read_t()
+            print(L, R, T)
+            # time.sleep(0.1)
+    finally:
+        adc.i2c_close()

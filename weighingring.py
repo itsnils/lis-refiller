@@ -1,14 +1,12 @@
-from contextlib import suppress
-import threading
 import time
 
-import pigpio
-import ads122c04  #24-bit ADC TI ADS122C04
-import mc24aa025e48 #1024-bit eeprom with unique 48-bit ID Microchip MC24AA025E48
-import runningmean
+from ads122c04 import ADS122C04  # 24-bit ADC TI ADS122C04
+from eeprom import EEPROM
+from runningmean import RunningMean
 import config
 
-class WeighingRing(ads122c04.ADS122C04):
+
+class WeighingRing(ADS122C04):
     I2Caddr = 0x45
     EEPROM_I2Caddr = 0x51
     Interval = 1  # seconds
@@ -22,46 +20,46 @@ class WeighingRing(ads122c04.ADS122C04):
     Ch1Parms = {'MUX': 0}
     Ch2Parms = {'MUX': 7}
 
-    def __init__(self, bus):
-        self.Config = config.load()
+    def __init__(self, bus, config):
+        self.Config = config
         self.ID = None
         self.Handle = None
         self.Status = "absent"
         self.Zero = 0
         self.Sign = 1
         self.Weight = 0
-        self.Mean = runningmean.RunningMean(self.RunningMeanWidth)
+        self.Mean = RunningMean(self.RunningMeanWidth)
         super().__init__(I2Cbus=bus, I2Caddr=self.I2Caddr, **self.GeneralParms)
-        self.EEPROM = mc24aa025e48.EEPROM(bus, self.EEPROM_I2Caddr)
+        self.EEPROM = EEPROM(bus, self.EEPROM_I2Caddr)
 
         self._LED = "SlowRed"  # fixme
 
     def connect(self):
+        self.EEPROM.i2c_open()
+        self.i2c_open()
         try:
-            self.EEPROM.i2c_open()
-            self.EEPROM.read_config()
-            print("on bus ", self.I2Cbus, "found weighing ring ", self.ID)
-            self.i2c_open()
-            return True
+            self.reset()
+            self.EEPROM.update()
+            self.ID = self.EEPROM.read_device_specific_data()
         except ConnectionError:
-            return False
+            self.EEPROM.i2c_close()
+            self.i2c_close()
+            raise
+        print("on bus ", self.I2Cbus, "found weighing ring ", self.ID)
+        return True
+
 
     def stop(self):
         self.i2c_close()
 
-    def initializeADC(self):
-        try:
+    def initialize_adc(self):
             self.reset()
             time.sleep(0.1)
             self.set_parms(**self.SetupParms)
 
-            return True
-        except pigpio.error:
-            return False
-
     def read2(self):
-        v1 = self.read(**self.Ch1Parms) / 0x01000000 / 0.0024 / 9.81 / 8 *1000
-        v2 = self.read(**self.Ch2Parms) / 0x01000000 / 0.0024 / 9.81 / 8 *1000
+        v1 = self.read(**self.Ch1Parms) / 0x01000000 / 0.0024 / 9.81 / 8 * 1000 * 2
+        v2 = self.read(**self.Ch2Parms) / 0x01000000 / 0.0024 / 9.81 / 8 * 1000 * 2
         v = (v1 + v2)
         return v
 
@@ -74,5 +72,3 @@ class WeighingRing(ads122c04.ADS122C04):
             w = w * self.EEPROM.AdcTemperatureGain + self.EEPROM.AdcTemperatureOffset
         self.Weight = w
         return w
-
-

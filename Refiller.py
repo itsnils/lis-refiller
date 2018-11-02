@@ -1,48 +1,63 @@
 import threading
-import json
+import config
 import time
 from contextlib import suppress
 
 import pump
-import weighingring
-import ringcontrolloop
+from weighingring import WeighingRing
+from ringcontrolloop import RingControlLoop
+from buttonhandler import Buttons
 
-LedGPIO = {"Red": (6, 19),
-           "Green": (5, 13),
-           }
-LedSeq = {"Off": ("Off",),
-          "SteadyRed": ("Red",),
-           "FastRed": ("Red","Off",),
-           "SlowRed": ("Red","Red","Red","Off","Off","Off","Off",),
-           "FastGreen": ("Green","Off",),
-           "SlowGreen": ("Green","Green","Off","Off","Off","Off",),
-           "SteadyGreen": ("Green",)
-           }
-LED = [None, None]
-LedSeqIter = [None, None]
+if __name__ == '__main__':
 
-#load or create config.json
+    LedGPIO = {"Red": (6, 19),
+               "Green": (5, 13),
+               }
+    LedSeq = {"Off": ("Off",),
+              "SteadyRed": ("Red",),
+               "FastRed": ("Red","Off",),
+               "SlowRed": ("Red","Red","Red","Off","Off","Off","Off",),
+               "FastGreen": ("Green","Off",),
+               "SlowGreen": ("Green","Green","Off","Off","Off","Off",),
+               "SteadyGreen": ("Green",)
+               }
+    LED = [None, None]
+    LedSeqIter = [None, None]
 
-#create Pump object and initialize
-Pump = pump.Pump(51200)
+    #load or create config.json
+    Config = config.load()
+
+    #create ButtonQ list and Buttons object and initialize
+    ButtonQ = {}
+    ButtonQLock = threading.Lock()
+    Buttons(ButtonQ, ButtonQLock)
+
+    #create Pump object and initialize
+    Pump = pump.Pump(51200)
+
+    #create weighing ring objects and initialize
+    Rings = [WeighingRing(bus=0, config=Config["Left"])] # fixme, WeighingRing(bus=1, config=Config["Right"])]
+    #create weighing ring control loop thread objects and start
+    threads = []
+    for Ring in Rings:
+        thread = RingControlLoop(Ring, Pump, ButtonQ)
+        thread.setName("RingControlLoop" + str(Ring.I2Cbus))
+        threads.append(thread)
+        thread.start()
+
+    #controller control loop
+    while True:
+        time.sleep(2)
+        with ButtonQLock:
+            if len(ButtonQ):
+                print("Button: ", ButtonQ)
+                ButtonQ.clear()
 
 
-#create weighing ring objects and initialize
-Rings = [weighingring.WeighingRing(bus=0),
-        weighingring.WeighingRing(bus=1)
-        ]
 
-#create weighing ring control loop thread objects and start
-threads = []
-for Ring in Rings:
-    thread = ringcontrolloop.RingControlLoop(Ring, Pump)
-    thread.setName("RingControlLoop" + str(Ring.I2Cbus))
-    threads.append(thread)
-    # thread.start() fixme
 
-#controller control loop
-while True:
 
+"""
     for L in LedSeq:
         # print("L:", L)
         for Ring in Rings:
@@ -70,6 +85,8 @@ while True:
                     Pump.pi.write(LedGPIO[col][i], 1)
                     # print(LedGPIO[col][i], 1)
             time.sleep(0.25)
+            
+"""
 
 
 

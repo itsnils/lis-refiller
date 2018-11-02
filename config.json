@@ -1,13 +1,15 @@
 {
   "Left":{
+    "SerialNumber": "801F1232380A",
     "RingType": "38240B",
-    "Zero": null,
-    "SerialNumber": "",
+    "Zero": 0,
+    "RelativeMaxWeight": 30,
+    "RelativeMinWeight": 70,
+    "AbsoluteMaxWeight": 600,
+    "AbsoluteMinWeight": 300,
+    "PumpVolume": 15,
+
     "I2cBus": 0,
-    "AdcGain": 0.0,
-    "AdcOffset": 0.0,
-    "AdcTempGain": 0.0,
-    "AdcTempOffset": 0.0,
     "ButtonGpio": 21,
     "LedGpio": {
       "Red": 6,
@@ -45,6 +47,4 @@
     "Steady": [1,1]},
   "LedInterval": 0.25,
   "I2cRetries": 5
-
-  }
 }
