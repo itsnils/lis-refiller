@@ -20,8 +20,9 @@ class WeighingRing(ADS122C04):
     Ch1Parms = {'MUX': 0}
     Ch2Parms = {'MUX': 7}
 
-    def __init__(self, bus, config):
-        self.Config = config
+    def __init__(self, bus, config, side):
+        self.Side = side
+        self.Config = config[self.Side]
         self.ID = None
         self.Handle = None
         self.Status = "absent"

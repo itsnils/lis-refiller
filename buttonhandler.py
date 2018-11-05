@@ -62,13 +62,13 @@ class Buttons:
                 elif self.LevelM:
                     # ... and R was released while L was pressed
                     # => double press
-                    self.log_event("M", tick - self.TickM)
+                    self.log_event("Head", tick - self.TickM)
                     self.LevelM = 0
                     self.LevelL = 0
                     self.TickL = tick
                 else:
                     # => single press
-                    self.log_event("L", tick - self.TickL)
+                    self.log_event("Left", tick - self.TickL)
                     self.LevelL = 0
                     self.TickL = tick
             elif gpio == self.GpioR:
@@ -82,18 +82,18 @@ class Buttons:
                 elif self.LevelM:
                     # ... and L was released while R was pressed
                     # => double press
-                    self.log_event("M", tick - self.TickM)
+                    self.log_event("Head", tick - self.TickM)
                     self.LevelM = 0
                     self.LevelR = 0
                     self.TickR = tick
                 else:
                     # => single press
-                    self.log_event("R",tick - self.TickR)
+                    self.log_event("Right",tick - self.TickR)
                     self.LevelR = 0
                     self.TickR = tick
 
     def log_event(self, e, d=None):
-        d /= 1e6
+        d /= 1e6  # convert microseconds to seconds
         with self.ButtonQLock:
             if d>4:
                 self.ButtonQ.update({e : 4})
