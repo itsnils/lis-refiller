@@ -23,7 +23,7 @@ class WeighingRing(ADS122C04):
 
     def __init__(self, side, config):
         self.Side = side
-        self.Config = config[self.Side]
+        self.Config = config
         self.ID = None
         self.Handle = None
         self.Status = "absent"
@@ -31,9 +31,9 @@ class WeighingRing(ADS122C04):
         self.Sign = 1
         self.Weight = 0
         self.Mean = AdaptiveRunningMean(minwidth=5, maxwidth=32, fup=0.6, fdown=0.5)
-        print("I2Cbus", self.Config["I2cBus"])
-        super().__init__(I2Cbus=self.Config["I2cBus"], I2Caddr=self.I2Caddr, **self.GeneralParms)
-        self.EEPROM = EEPROM(self.Config["I2cBus"], self.EEPROM_I2Caddr)
+        print("I2Cbus", self.Config[self.Side]["I2cBus"])
+        super().__init__(I2Cbus=self.Config[self.Side]["I2cBus"], I2Caddr=self.I2Caddr, **self.GeneralParms)
+        self.EEPROM = EEPROM(self.Config[self.Side]["I2cBus"], self.EEPROM_I2Caddr)
 
         self._LED = "SlowRed"  # fixme
 

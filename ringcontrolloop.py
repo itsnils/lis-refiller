@@ -1,18 +1,21 @@
 import threading
 import time
+import config
 from contextlib import suppress
 
 
 class RingControlLoop(threading.Thread):
 
-    def __init__(self, ring, pump, leds, buttons, interval=1):
+    def __init__(self, ring, pump, leds, buttons, watchdog=None, interval=1):
         print("init RingControlLoop ", ring.I2Cbus)
         super(RingControlLoop, self).__init__()
         self.Ring = ring
+        self.Config = self.Ring.Config[self.Ring.Side]
         self.Pump = pump
         self.Leds = leds
         self.Buttons = buttons
         self.Interval = interval
+        self.Watchdog = watchdog
         self.NextInterval = None
         self.Active = True
         self.CurrentID = None
@@ -34,15 +37,17 @@ class RingControlLoop(threading.Thread):
         """run the control loop for the weighing ring at a fixed interval
         (or as fast as possible) and update the status of the weighing ring"""
         try:
-            print(self.Ring.Config)
+            print(self.Config)
             while self.Active:
 
                 self.NextInterval = time.process_time() + self.Interval
+                #print("Watchdog:", self.Ring.Side, 10)
+                self.Watchdog.calm(side=self.Ring.Side, duration=10) # fixme
                 # print("Ring Status: ", self.Ring.Status, "on bus", self.Ring.I2Cbus, self.Ring.Handle)
                 try:
                     if "absent" == self.Ring.Status:
                         # print(self.Ring.Side + " absent")
-                        self.set_led("Red", "Steady")
+                        self.set_led("Red", "Off")
                         self.Ring.connect()
                         if self.CurrentID == self.Ring.ID:
                             self.Ring.Status = "found"
@@ -67,58 +72,52 @@ class RingControlLoop(threading.Thread):
                             with self.Buttons.QLock:
                                 self.Buttons.Q.clear()
                             print("Zeroing...")
-                            if self.Ring.Config["AbsoluteMinWeight"] < w < self.Ring.Config["AbsoluteMaxWeight"]:
-                                self.Ring.Config.update({"Zero": w})
-                                print(self.Ring.Side + " New Zero: " + str(self.Ring.Config["Zero"]))
-                                print(self.Ring.Side + " Zero: " + str(self.Ring.Config["Zero"]) + "g")
+                            if self.Config["AbsoluteMinWeight"] < w < self.Config["AbsoluteMaxWeight"]:
+                                self.Config.update({"Zero": w-3})
+                                self.Config.update({"SerialNumber": self.Ring.ID})
+                                config.save(self.Ring.Config)
+                                print(self.Ring.Side + " New Zero: " + str(self.Config["Zero"]))
+                                print(self.Ring.Side + " Zero: " + str(self.Config["Zero"]) + "g")
                             else:
-                                self.Ring.Config.update({"Zero": 0})  # LED slowRed
+                                self.Config.update({"Zero": 0})  # LED slowRed
                                 print(self.Ring.Side + " Zeroing failed")
 
-                        if not self.Ring.Config["AbsoluteMinWeight"] < w < self.Ring.Config["AbsoluteMaxWeight"]:
+                        if not self.Config["AbsoluteMinWeight"] < w < self.Config["AbsoluteMaxWeight"]:
                             self.set_led("Red", "Fast")
+                            # fixme self.Leds.Q.append((self.Ring.Side, "Beep", "Bibip"))
+
                             msg2 = "Column too light or to heavy -- check"  # LED fastRed
                             msg1 = (self.Ring.Side +
                                     " Weight: " + str(round(w, 1)) +
-                                    "g Zero: " + str(self.Ring.Config["Zero"]) +
+                                    "g Zero: " + str(self.Config["Zero"]) +
                                     "g : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
-                        elif not (self.Ring.Config["Zero"] - self.Ring.Config["RelativeMinWeight"]
+                        elif not (self.Config["Zero"] - self.Config["RelativeMinWeight"]
                                   < w <
-                                  self.Ring.Config["Zero"] + self.Ring.Config["RelativeMaxWeight"]):
+                                  self.Config["Zero"] + self.Config["RelativeMaxWeight"]):
                             self.set_led("Red", "Slow")
+                            # fixme self.Leds.Q.append((self.Ring.Side, "Beep", "Bip"))
+
                             msg2 = "Weight difference too large -- check & zero"  # LED slowRED
                             msg1 = (self.Ring.Side + " Weight: " + str(round(w, 1)) +
-                                    "g Zero: " + str(self.Ring.Config["Zero"]) + "g : " +
+                                    "g Zero: " + str(self.Config["Zero"]) + "g : " +
                                     str(round(t, 1)) + "°C " + str(self.Buttons.Q))
                         else:
                             msg1 = (self.Ring.Side + " Weight: " + str(round(w, 1)) +
-                                    "g Zero: " + str(self.Ring.Config["Zero"]) +
+                                    "g Zero: " + str(self.Config["Zero"]) +
                                     "g : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
-                            if w < self.Ring.Config["Zero"]:
+                            if w < self.Config["Zero"]:
+                                if not self.Pump.Lock.locked():
+                                    self.Pump.pump(self.Config["PumpVolume"]*self.Config["PumpDir"], self.Config["PumpRate"])
                                 msg2 = "Pumping 15ml"  # LED slowGreen
                                 self.set_led("Green", "Slow")
+                                # fixme self.Leds.Q.append((self.Ring.Side, "Beep", "Off"))
+
                             else:
                                 msg2 = "ok"  # LED steadyGreen
                                 self.set_led("Green", "Steady")
-                        print(msg1, msg2)
+                                # fixme self.Leds.Q.append((self.Ring.Side, "Beep", "Off"))
 
-                        # fixme
-                        """
-                        if self.Ring.update():
-                            self.Ring.Status = "present"
-                            if self.Ring.check():
-                                if self.Ring.Weight > self.Ring.Zero:
-                                    self.Ring.LED = "SteadyGreen"
-                                else:
-                                    self.Pump(self.Ring.Sign * self.Ring.VolumeStep, self.Ring.PumpSpeed)
-                                    self.Ring.LED = "SlowGreen"
-                            else:
-                                self.Ring.LED = "SlowRed"
-                        else:
-                            self.Ring.Status = "lost"
-                            self.Ring.LED = "SteadyRed"
-                        """
-                        pass
+                        print(str(round(time.time()/3600,3)),msg1, msg2)
 
                     if "lost" == self.Ring.Status:
                         self.Ring.stop()

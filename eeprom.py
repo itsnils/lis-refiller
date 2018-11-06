@@ -31,8 +31,8 @@ class EEPROM(MC24AA025E48):
                             self.write_float32(addr, new)
                         deviceSpecific[id][key].pop(-2)
                 self.write(0, b'LIS')  # write 'LIS' to addr 0-2
-        with open(filepath, "w") as f:
-            json.dump(deviceSpecific, f, indent=4)
+        # with open(filepath, "w") as f:
+                 # fixme json.dump(deviceSpecific, f, indent=4)
         return json.dumps(deviceSpecific, indent=4)
 
     def build_filekey_from_template(self,filepath='eeprom.json' ):
