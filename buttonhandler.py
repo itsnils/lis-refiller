@@ -1,4 +1,5 @@
 import time
+import threading
 
 import pigpio
 
@@ -6,10 +7,10 @@ import pigpio
 class Buttons:
 
 
-    def __init__(self, queue, lock, gpioL=21, gpioR=17):
+    def __init__(self, gpioL=21, gpioR=17):
 
-        self.ButtonQ = queue
-        self.ButtonQLock = lock
+        self.Q = {}
+        self.QLock = threading.Lock()
         self.GpioL = gpioL
         self.GpioR = gpioR
         self.pi = pigpio.pi()
@@ -88,31 +89,26 @@ class Buttons:
                     self.TickR = tick
                 else:
                     # => single press
-                    self.log_event("Right",tick - self.TickR)
+                    self.log_event("Right", tick - self.TickR)
                     self.LevelR = 0
                     self.TickR = tick
 
     def log_event(self, e, d=None):
         d /= 1e6  # convert microseconds to seconds
-        with self.ButtonQLock:
-            if d>4:
-                self.ButtonQ.update({e : 4})
+        with self.QLock:
+            if d > 4:
+                self.Q.update({e: 4})
                 # print(self.ButtonQ[e])
-            elif d>1:
-                self.ButtonQ.update({e : 1})
+            elif d > 1:
+                self.Q.update({e: 1})
                 # print(self.ButtonQ[e])
-
 
 
 if __name__ == '__main__':
-    Q = {}
     try:
-        buttons = Buttons(Q)
+        buttons = Buttons()
         while True:
             # print("yawn")
             time.sleep(1)
     finally:
-        buttons.__exit__(None,None,None)
-
-
-
+        buttons.__exit__(None, None, None)

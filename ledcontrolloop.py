@@ -15,12 +15,12 @@ class LedControlLoop(threading.Thread):
               "Slow": (1, 1, 1, 1, 1, 0, 0, 0, 0, 0,),
               }
 
-    def __init__(self, config, queue, lock, interval=0.2):
+    def __init__(self, config, interval=0.2):
         super().__init__()
         self.Config = config
-        self.Lock = lock
+        self.Q = []
+        self.QLock = threading.Lock()
         self.Interval = interval
-        self.LedQ = queue
         self.pi = blupio.pi()
         self.Active = True
         self.Leds = {}
@@ -36,14 +36,14 @@ class LedControlLoop(threading.Thread):
     def run(self):
         while self.Active:
             self.NextInterval = time.process_time() + self.Interval
-            with self.Lock:
-                for side, color, mode in self.LedQ:
+            with self.QLock:
+                for side, color, mode in self.Q:
                     currentmode = self.Leds[side][color][0]
                     if not mode == currentmode:
                         seq = cycle(self.LedSeq[mode])
                         self.Leds[side].update({color:[mode, seq]})
                         # print("New LedSeq: ", side, color, mode, currentmode)
-                self.LedQ.clear()
+                self.Q.clear()
             for side in self.Leds:
                 for color in self.Leds[side]:
                     self.pi.write(self.Config[side]["LedGpio"][color], next(self.Leds[side][color][1]))

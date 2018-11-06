@@ -1,8 +1,9 @@
 import time
+import statistics
 
 from ads122c04 import ADS122C04  # 24-bit ADC TI ADS122C04
 from eeprom import EEPROM
-from runningmean import RunningMean
+from runningmean import AdaptiveRunningMean
 import config
 
 
@@ -20,7 +21,7 @@ class WeighingRing(ADS122C04):
     Ch1Parms = {'MUX': 0}
     Ch2Parms = {'MUX': 7}
 
-    def __init__(self, bus, config, side):
+    def __init__(self, side, config):
         self.Side = side
         self.Config = config[self.Side]
         self.ID = None
@@ -29,9 +30,10 @@ class WeighingRing(ADS122C04):
         self.Zero = 0
         self.Sign = 1
         self.Weight = 0
-        self.Mean = RunningMean(self.RunningMeanWidth)
-        super().__init__(I2Cbus=bus, I2Caddr=self.I2Caddr, **self.GeneralParms)
-        self.EEPROM = EEPROM(bus, self.EEPROM_I2Caddr)
+        self.Mean = AdaptiveRunningMean(minwidth=5, maxwidth=32, fup=0.6, fdown=0.5)
+        print("I2Cbus", self.Config["I2cBus"])
+        super().__init__(I2Cbus=self.Config["I2cBus"], I2Caddr=self.I2Caddr, **self.GeneralParms)
+        self.EEPROM = EEPROM(self.Config["I2cBus"], self.EEPROM_I2Caddr)
 
         self._LED = "SlowRed"  # fixme
 
@@ -71,5 +73,5 @@ class WeighingRing(ADS122C04):
             w = self.read2() * self.EEPROM.AdcGain + self.EEPROM.AdcOffset
         if tempcomp:
             w = w * self.EEPROM.AdcTemperatureGain + self.EEPROM.AdcTemperatureOffset
-        self.Weight = w
-        return w
+        self.Weight = self.Mean.do(w, func=statistics.median)
+        return self.Weight

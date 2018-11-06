@@ -18,25 +18,21 @@ if __name__ == '__main__':
     Config = config.load()
 
     #create LedQ list and LedControlLoop, initialize and start
-    LedQ = []
-    LedQLock = threading.Lock()
-    Leds = LedControlLoop(Config, LedQ, LedQLock, interval=0.2)
+    Leds = LedControlLoop(Config, interval=0.2)
     Leds.start()
 
     #create ButtonQ dict and Buttons object and initialize
-    ButtonQ = {}
-    ButtonQLock = threading.Lock()
-    Buttons(ButtonQ, ButtonQLock)
+    Buttons = Buttons()
 
     #create Pump object and initialize
     Pump = pump.Pump(51200)
 
     #create weighing ring objects and initialize
-    Rings = [WeighingRing(bus=0, side="Left", config=Config), WeighingRing(bus=1, side="Right", config=Config)]
+    Rings = [WeighingRing(side="Left", config=Config), WeighingRing(side="Right", config=Config)]
     #create weighing ring control loop thread objects and start
     threads = []
     for Ring in Rings:
-        thread = RingControlLoop(Ring, Pump, LedQ, LedQLock, ButtonQ, ButtonQLock, interval=0.5)
+        thread = RingControlLoop(Ring, Pump, Leds, Buttons, interval=0.5)
         thread.setName("RingControlLoop" + str(Ring.Side))
         threads.append(thread)
         thread.start()
@@ -44,10 +40,10 @@ if __name__ == '__main__':
     #controller control loop
     while True:
         time.sleep(2)
-        with ButtonQLock:
-            if len(ButtonQ):
-                print("Button: ", ButtonQ)
-                ButtonQ.clear()
+        with Buttons.QLock:
+            if len(Buttons.Q):
+                print("Button: ", Buttons.Q)
+                Buttons.Q.clear()
 
 
 
