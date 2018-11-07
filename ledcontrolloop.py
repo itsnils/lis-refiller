@@ -9,6 +9,7 @@ import blupio
 
 
 class LedControlLoop(threading.Thread):
+    """ fixme
     LedSeq = {"Off": (0,),
               "Steady": (1,),
               "Alive": (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0),
@@ -16,24 +17,25 @@ class LedControlLoop(threading.Thread):
               "Slow": (1, 1, 1, 1, 1, 0, 0, 0, 0, 0,),
               "Bip": (1, 0, 0, 0, 0, 0, 0, 0, 0),
               "Bibip": (1, 0, 1, 0)
-              }
+              }"""
 
-    def __init__(self, config, watchdog=None, interval=0.2):
+    def __init__(self, conf, watchdog=None, interval=0.2):
         super().__init__()
-        self.Config = config
+        self.Config = conf
         self.Watchdog = watchdog
         self.Q = []
         self.QLock = threading.Lock()
         self.Interval = interval
         self.pi = blupio.pi()
         self.Active = True
+        self.LedSeq = self.Config["Head"]["LedSequence"]
         self.Leds = {}
         for side in self.Config:
-            if not side in self.Leds:
+            if side not in self.Leds:
                 self.Leds.update({side: {}})
             for color in self.Config[side]["LedGpio"]:
-                if not color in self.Leds[side]:
-                    self.Leds[side].update({color: ["Off", cycle([0,])]})
+                if color not in self.Leds[side]:
+                    self.Leds[side].update({color: ["Off", cycle([0, ])]})
         print("Leds", self.Leds)
         self.clear()
 
@@ -46,7 +48,7 @@ class LedControlLoop(threading.Thread):
                     currentmode = self.Leds[side][color][0]
                     if not mode == currentmode:
                         seq = cycle(self.LedSeq[mode])
-                        self.Leds[side].update({color:[mode, seq]})
+                        self.Leds[side].update({color: [mode, seq]})
                         # print("New LedSeq: ", side, color, mode, currentmode)
                 self.Q.clear()
             for side in self.Leds:
@@ -73,28 +75,26 @@ class LedControlLoop(threading.Thread):
                     self.pi.write(self.Config[side]["LedGpio"][color], 0)
 
 
-
 if __name__ == "__main__":
+    Conf = config.load()
     try:
-        Lock = threading.Lock()
-        Conf = config.load()
-        with Lock:
+        L = LedControlLoop(Conf)
+        with L.QLock:
             Queue = []
-        L = LedControlLoop(Conf, Queue, Lock)
         L.test(5)
         time.sleep(2)
 
         L.start()
         time.sleep(2)
 
-        with Lock:
+        with L.QLock:
             Queue.append(("Left", "Green", "Slow"))
             Queue.append(("Left", "Red", "Steady"))
             Queue.append(("Right", "Green", "Slow"))
             Queue.append(("Right", "Red", "Fast"))
         time.sleep(10)
 
-        with Lock:
+        with L.QLock:
             Queue.append(("Left", "Green", "Off"))
             Queue.append(("Left", "Red", "Fast"))
             Queue.append(("Right", "Green", "Slow"))

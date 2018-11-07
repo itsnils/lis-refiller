@@ -5,10 +5,10 @@
     "Zero": 0,
     "RelativeMaxWeight": 30,
     "RelativeMinWeight": 70,
-    "AbsoluteMaxWeight": 600,
+    "AbsoluteMaxWeight": 450,
     "AbsoluteMinWeight": 200,
-    "PumpVolume": 15,
-    "PumpRate": 1,
+    "PumpVolume": 10,
+    "PumpRate": 0.3,
 
     "I2cBus": 0,
     "ButtonGpio": 21,
@@ -25,10 +25,10 @@
     "Zero": 0,
     "RelativeMaxWeight": 30,
     "RelativeMinWeight": 70,
-    "AbsoluteMaxWeight": 600,
+    "AbsoluteMaxWeight": 450,
     "AbsoluteMinWeight": 200,
-    "PumpVolume": 15,
-    "PumpRate": 1,
+    "PumpVolume": 10,
+    "PumpRate": 0.3,
 
     "I2cBus": 1,
     "AdcGain": 1.0,
@@ -54,28 +54,13 @@
     },
     "BuzzerGpio": 12,
     "LedSequence": {
-      "Off": [
-        0,
-        0
-      ],
-      "Fast": [
-        1,
-        0
-      ],
-      "Slow": [
-        1,
-        1,
-        1,
-        1,
-        0,
-        0,
-        0,
-        0
-      ],
-      "Steady": [
-        1,
-        1
-      ]
+      "Off": [ 0, 0],
+      "Fast": [ 1, 0],
+      "Slow": [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+      "Steady": [ 1, 1],
+      "Alive": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+      "Bip": [1, 0, 0, 0, 0, 0, 0, 0, 0],
+      "Bibip": [1, 0, 1, 0]
     },
     "LedInterval": 0.25,
     "I2cRetries": 5

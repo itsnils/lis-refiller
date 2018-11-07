@@ -62,6 +62,10 @@ class AdaptiveRunningMean:
         # print("Len ", len(self.Stack), "Width ", self.Width, "Data ", self.Stack[-(round(self.Width)):])
         return func(self.Stack[-(round(self.Width)):])
 
+    def reset(self):
+        self.Stack = []
+        self.Width = self.MinWidth
+
 
 
 if __name__ == '__main__':

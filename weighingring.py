@@ -30,6 +30,7 @@ class WeighingRing(ADS122C04):
         self.Zero = 0
         self.Sign = 1
         self.Weight = 0
+        self.WeightAvg = 0
         self.Mean = AdaptiveRunningMean(minwidth=5, maxwidth=32, fup=0.6, fdown=0.5)
         print("I2Cbus", self.Config[self.Side]["I2cBus"])
         super().__init__(I2Cbus=self.Config[self.Side]["I2cBus"], I2Caddr=self.I2Caddr, **self.GeneralParms)
@@ -67,11 +68,12 @@ class WeighingRing(ADS122C04):
         return v
 
     def read_weight(self, average=False, tempcomp=False,):
-        if average:
-            w = self.read2() * self.EEPROM.AdcGain + self.EEPROM.AdcOffset # fixme
-        else:
-            w = self.read2() * self.EEPROM.AdcGain + self.EEPROM.AdcOffset
+        w = self.read2() * self.EEPROM.AdcGain + self.EEPROM.AdcOffset
         if tempcomp:
             w = w * self.EEPROM.AdcTemperatureGain + self.EEPROM.AdcTemperatureOffset
-        self.Weight = self.Mean.do(w, func=statistics.median)
-        return self.Weight
+        self.Weight = w
+        self.WeightAvg = self.Mean.do(w, func=statistics.median)
+        if average:
+            return self.WeightAvg
+        else:
+            return self.Weight

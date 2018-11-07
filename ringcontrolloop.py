@@ -66,49 +66,64 @@ class RingControlLoop(threading.Thread):
 
                     if "present" == self.Ring.Status:
                         w = self.Ring.read_weight()
+                        wavg = self.Ring.WeightAvg
                         t = self.Ring.read_t()
 
-                        if self.Ring.Side in self.Buttons.Q:
-                            with self.Buttons.QLock:
-                                self.Buttons.Q.clear()
-                            print("Zeroing...")
-                            if self.Config["AbsoluteMinWeight"] < w < self.Config["AbsoluteMaxWeight"]:
-                                self.Config.update({"Zero": w-3})
-                                self.Config.update({"SerialNumber": self.Ring.ID})
-                                config.save(self.Ring.Config)
-                                print(self.Ring.Side + " New Zero: " + str(self.Config["Zero"]))
-                                print(self.Ring.Side + " Zero: " + str(self.Config["Zero"]) + "g")
-                            else:
-                                self.Config.update({"Zero": 0})  # LED slowRed
-                                print(self.Ring.Side + " Zeroing failed")
+                        with self.Buttons.QLock:
+                            try:
+                                if self.Buttons.Q[self.Ring.Side] >= 1:
+                                    self.Buttons.Q.pop(self.Ring.Side)
+                                    print("Zeroing...")
+                                    if self.Config["AbsoluteMinWeight"] < w < self.Config["AbsoluteMaxWeight"]:
+                                        self.Config.update({"Zero": wavg - 3})
+                                        self.Config.update({"SerialNumber": self.Ring.ID})
+                                        config.save(self.Ring.Config)
+                                        print(self.Ring.Side + " New Zero: " + str(self.Config["Zero"]))
+                                        print(self.Ring.Side + " Zero: " + str(self.Config["Zero"]) + "g")
+                                    else:
+                                        self.Config.update({"Zero": 0})  # LED slowRed
+                                        print(self.Ring.Side + " Zeroing failed")
+                                elif self.Buttons.Q[self.Ring.Side] >= 4:
+                                    pass
+                            except KeyError:
+                                pass
 
                         if not self.Config["AbsoluteMinWeight"] < w < self.Config["AbsoluteMaxWeight"]:
+                            self.Pump.stop(self.Config["PumpDir"])
                             self.set_led("Red", "Fast")
                             # fixme self.Leds.Q.append((self.Ring.Side, "Beep", "Bibip"))
-
+                            self.Ring.Mean.reset()
                             msg2 = "Column too light or to heavy -- check"  # LED fastRed
                             msg1 = (self.Ring.Side +
-                                    " Weight: " + str(round(w, 1)) +
-                                    "g Zero: " + str(self.Config["Zero"]) +
-                                    "g : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
+                                    " W: " + str(round(w, 1)) +
+                                    " Wavg: " + str(round(wavg, 1)) +
+                                    " Zero: " + str(self.Config["Zero"]) +
+                                    " : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
                         elif not (self.Config["Zero"] - self.Config["RelativeMinWeight"]
                                   < w <
                                   self.Config["Zero"] + self.Config["RelativeMaxWeight"]):
+                            self.Pump.stop(self.Config["PumpDir"])
                             self.set_led("Red", "Slow")
                             # fixme self.Leds.Q.append((self.Ring.Side, "Beep", "Bip"))
-
+                            self.Ring.Mean.reset()
                             msg2 = "Weight difference too large -- check & zero"  # LED slowRED
-                            msg1 = (self.Ring.Side + " Weight: " + str(round(w, 1)) +
-                                    "g Zero: " + str(self.Config["Zero"]) + "g : " +
-                                    str(round(t, 1)) + "°C " + str(self.Buttons.Q))
+                            msg1 = (self.Ring.Side +
+                                    " W: " + str(round(w, 1)) +
+                                    " Wavg: " + str(round(wavg, 1)) +
+                                    " Zero: " + str(self.Config["Zero"]) +
+                                    " : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
                         else:
-                            msg1 = (self.Ring.Side + " Weight: " + str(round(w, 1)) +
-                                    "g Zero: " + str(self.Config["Zero"]) +
-                                    "g : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
-                            if w < self.Config["Zero"]:
+                            msg1 = (self.Ring.Side +
+                                    " W: " + str(round(w, 1)) +
+                                    " Wavg: " + str(round(wavg, 1)) +
+                                    " Zero: " + str(self.Config["Zero"]) +
+                                    " : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
+
+                            if wavg < self.Config["Zero"] and w < self.Config["Zero"] \
+                                    and self.Ring.Mean.Width > self.Ring.Mean.MinWidth:
                                 if not self.Pump.Lock.locked():
                                     self.Pump.pump(self.Config["PumpVolume"]*self.Config["PumpDir"], self.Config["PumpRate"])
-                                msg2 = "Pumping 15ml"  # LED slowGreen
+                                msg2 = "Pumping"  # LED slowGreen
                                 self.set_led("Green", "Slow")
                                 # fixme self.Leds.Q.append((self.Ring.Side, "Beep", "Off"))
 

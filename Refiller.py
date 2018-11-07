@@ -43,7 +43,8 @@ if __name__ == '__main__':
     Buttons = Buttons()
 
     #create Pump object and initialize
-    Pump = pump.Pump(51200)
+    Pump = pump.Pump(51200*3.5)
+    PumpStop = None
 
     #create weighing ring objects and initialize
     Rings = [WeighingRing(side="Left", config=Config), WeighingRing(side="Right", config=Config)]
@@ -60,11 +61,22 @@ if __name__ == '__main__':
     while True:
         time.sleep(1)
         Watchdog.calm("Head", 10)
+
         if not Buttons.QLock.locked():
             with Buttons.QLock:
                 if len(Buttons.Q):
                     print("Button: ", Buttons.Q)
-                    Buttons.Q.clear()
+                    try:
+                        if Buttons.Q["M"] >= 4:
+                            Buttons.Q.pop("M")
+                            print("Enter Wifi Config")
+                            # enter Wifi Config fixme
+                        else:
+                            # put other double button actions here
+                            Buttons.Q.pop("M")
+                    except KeyError:
+                        pass
+
         if not Pump.arrived():
             set_led("Green", "Slow")
             if not Pump.Lock.locked():

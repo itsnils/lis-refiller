@@ -234,23 +234,4 @@ class Pump(Motor):
         Motor.__init__(self)
         self.Oldpos = self.move(relpos=0)
 
-    def pump(self, vol=None, flow=None):
-        """ pumps the desired volume at the desired flow rate (optional)
-            updates the positive and negative volume pumped so far, even if vol and flow are None
-        """
-        if not vol == None:
-            steps = int(vol * self.F)
-            if not flow == None:
-                stepspeed = int(abs(flow) * self.F)
-                newpos = self.moveby(relpos=steps, speed=stepspeed)
-            else:
-                newpos = self.moveby(relpos=steps)
-        else:
-            newpos = self.moveby()
-        if self.Oldpos < newpos:
-            self.TotalP += (newpos-self.Oldpos)/self.F
-        else:
-            self.TotalM += (self.Oldpos-newpos)/self.F
-        self.Oldpos = newpos
-        return self.TotalP, self.TotalM
-                
+
