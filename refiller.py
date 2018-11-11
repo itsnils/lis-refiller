@@ -76,6 +76,8 @@ if __name__ == '__main__':
 
     logger.info("Refiller.py starting up")
 
+    pi = blupio.pi()
+
     free_handles()
 
     # load or create config.json
@@ -103,7 +105,7 @@ if __name__ == '__main__':
     Buttons = Buttons()
 
     # create Pump object and initialize
-    Pump = pump.Pump(Config["Head"]["StepsPerML"])
+    Pump = pump.Pump(Config)
     PumpStop = None
 
     # create weighing ring objects and initialize
@@ -182,7 +184,6 @@ if __name__ == '__main__':
             Leds.Active = False
             for thread in threads:
                 thread.Active = False
-            pi = blupio.pi()
             red_alert(Config)
             beep(Config, 1)
             raise

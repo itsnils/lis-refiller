@@ -27,10 +27,8 @@ class Pump(tmc5130.Pump):
 
     def pump(self, dir, vol=None, flow=None):
         """ pumps the desired volume at the desired flow rate (optional)
-            updates the positive and negative volume pumped so far, even if vol and flow are None
+            updates the volume pumped per direction/channel so far, even if vol and flow are None
         """
-        sign = lambda x: x and (1, -1)[x < 0]
-
         if self.Config["Head"]["ValveType"] == "Rectifier":
             if vol is not None:
                 steps = int(dir * vol * self.F)
