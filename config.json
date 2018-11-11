@@ -66,6 +66,7 @@
     },
     "LedInterval": 0.25,
     "I2cRetries": 5,
-    "StepsPerML": 179200
+    "StepsPerML": 179200,
+    "PumpDir": 1
   }
 }

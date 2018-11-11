@@ -3,10 +3,7 @@
 import refill_log
 from refill_log import logger
 
-import os
-import sys
 import subprocess
-import threading
 import json
 import config
 import time
@@ -32,31 +29,33 @@ def set_led(color, mode):
         else:
             Leds.Q.append(("Head", color, mode))
 
+
 def free_handles():
-    pi = blupio.pi()
-    for i in range(25, 127):  # fixme
-        with suppress(Exception): pi.i2c_close(i)
-        with suppress(Exception): pi.spi_close(i)
+    for i in range(25, 127):
+        with suppress(Exception):
+            pi.i2c_close(i)
+        with suppress(Exception):
+            pi.spi_close(i)
 
-def fiat_nox(config):
-    pi = blupio.pi()
-    pi.write(config["Head"]["BuzzerGpio"], 0)
-    for side in config:
-        for color in config[side]["LedGpio"]:
-            pi.write(config[side]["LedGpio"][color], 0)
 
-def beep(config, duration=1):
-    pi = blupio.pi()
-    pi.write(config["Head"]["BuzzerGpio"], 1)
+def fiat_nox(conf):
+    pi.write(conf["Head"]["BuzzerGpio"], 0)
+    for side in conf:
+        for color in conf[side]["LedGpio"]:
+            pi.write(conf[side]["LedGpio"][color], 0)
+
+
+def beep(conf, duration=0.05):
+    pi.write(conf["Head"]["BuzzerGpio"], 1)
     time.sleep(duration)
-    pi.write(config["Head"]["BuzzerGpio"], 0)
+    pi.write(conf["Head"]["BuzzerGpio"], 0)
 
 
-def red_alert(config):
-    pi = blupio.pi()
-    for side in config:
-        for color in config[side]["LedGpio"]:
-            pi.write(config[side]["LedGpio"][color], 1) if color == "Red" else pi.write(config[side]["LedGpio"][color], 0)
+def red_alert(conf):
+    for side in conf:
+        for color in conf[side]["LedGpio"]:
+            pi.write(conf[side]["LedGpio"][color], 1) if color == "Red" else pi.write(conf[side]["LedGpio"][color], 0)
+
 
 def check_wifi_state():
     try:
@@ -79,7 +78,7 @@ if __name__ == '__main__':
 
     free_handles()
 
-    #load or create config.json
+    # load or create config.json
     Config = config.load()
     logger.debug(json.dumps(Config))
     with suppress(KeyError):
@@ -87,30 +86,29 @@ if __name__ == '__main__':
     beep(Config, 0.1)  # greeting
     fiat_nox(Config)   # switch off LEDs
 
-
-    #create LedQ list and LedControlLoop, initialize and start
+    # create LedQ list and LedControlLoop, initialize and start
     Leds = LedControlLoop(Config, interval=0.2, stayalive=StayAlive)
 
     wifi_configmode_flag = False
 
-    #create Watchdog and start
+    # create Watchdog and start
     Watchdog = WatchDog(Leds)
     Leds.Watchdog = Watchdog
 
-    #start LED and Watchdog threads
+    # start LED and Watchdog threads
     Watchdog.start()
     Leds.start()
 
-    #create ButtonQ dict and Buttons object and initialize
+    # create ButtonQ dict and Buttons object and initialize
     Buttons = Buttons()
 
-    #create Pump object and initialize
+    # create Pump object and initialize
     Pump = pump.Pump(Config["Head"]["StepsPerML"])
     PumpStop = None
 
-    #create weighing ring objects and initialize
+    # create weighing ring objects and initialize
     Rings = [WeighingRing(side="Left", config=Config), WeighingRing(side="Right", config=Config)]
-    #create weighing ring control loop thread objects and start
+    # create weighing ring control loop thread objects and start
     threads = []
     for Ring in Rings:
         thread = RingControlLoop(Ring, Pump, Leds, Buttons, interval=0.5, stayalive=StayAlive)
@@ -119,7 +117,7 @@ if __name__ == '__main__':
         threads.append(thread)
         thread.start()
 
-    #controller control loop
+    # controller control loop
     while True:
         try:
             time.sleep(1)
@@ -128,7 +126,7 @@ if __name__ == '__main__':
                 with Buttons.QLock:
                     if len(Buttons.Q):
                         print("Button: ", Buttons.Q)
-                        try: # fixme
+                        try:  # fixme
                             if Buttons.Q["Left"] >= 4:
                                 Buttons.Q.pop("Left")
                                 wifi_configmode_flag = True
@@ -172,10 +170,10 @@ if __name__ == '__main__':
         # keep alive if exception
         except Exception as exc:
             if StayAlive:
-                logger.error("Trying to go on after Exception" + exc)
+                logger.error("Trying to go on after Exception" + str(exc))
                 print(exc)
             else:
-                logger.error("Exiting on Exception" + exc)
+                logger.error("Exiting on Exception" + str(exc))
                 beep(Config, 1)
                 red_alert(Config)
                 raise
@@ -188,18 +186,11 @@ if __name__ == '__main__':
             red_alert(Config)
             beep(Config, 1)
             raise
-        except:
-            logger.error("Exiting on Severe Exception" + exc)
+        except BaseException as exc:
+            logger.error("Exiting on BaseException" + str(exc))
             for thread in threads:
                 Leds.Active = False
                 thread.Active = False
                 red_alert(Config)
             # beep(Config, 10)
             raise
-
-
-
-
-
-
-

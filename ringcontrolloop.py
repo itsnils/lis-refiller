@@ -128,7 +128,7 @@ class RingControlLoop(threading.Thread):
                             if wavg < self.RingConfig["Zero"] and w < self.RingConfig["Zero"] \
                                     and self.Ring.Mean.Width > self.Ring.Mean.MinWidth:
                                 if not self.Pump.Lock.locked():
-                                    self.Pump.pump(self.RingConfig["PumpVolume"] * self.RingConfig["PumpDir"], self.RingConfig["PumpRate"])
+                                    self.Pump.pump(self.RingConfig["PumpDir"], self.RingConfig["PumpVolume"], self.RingConfig["PumpRate"])
                                 msg2 = "Pumping"  # LED slowGreen
                                 self.set_led("Green", "Slow")
 
