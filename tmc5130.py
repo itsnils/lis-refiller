@@ -218,7 +218,6 @@ class Motor:
         self.reg(self.XACTUAL) # some read command to update the status
         return ((self.Status & 0x02) > 0)
 
-
 class Pump(Motor):
     """ takes driver/micro steps per milliliter as an initialization argument
         (remains accessible as F)

@@ -4,7 +4,7 @@ import statistics
 from ads122c04 import ADS122C04  # 24-bit ADC TI ADS122C04
 from eeprom import EEPROM
 from runningmean import AdaptiveRunningMean
-import config
+from refill_log import logger
 
 
 class WeighingRing(ADS122C04):
@@ -22,21 +22,18 @@ class WeighingRing(ADS122C04):
     Ch2Parms = {'MUX': 7}
 
     def __init__(self, side, config):
+        logger.debug("WeighingRing.__init__()")
         self.Side = side
         self.Config = config
         self.ID = None
         self.Handle = None
-        self.Status = "absent"
-        self.Zero = 0
-        self.Sign = 1
         self.Weight = 0
         self.WeightAvg = 0
-        self.Mean = AdaptiveRunningMean(minwidth=5, maxwidth=32, fup=0.6, fdown=0.5)
-        print("I2Cbus", self.Config[self.Side]["I2cBus"])
+        self.Mean = AdaptiveRunningMean(minwidth=10, maxwidth=32, fup=0.6, fdown=0.4)
         super().__init__(I2Cbus=self.Config[self.Side]["I2cBus"], I2Caddr=self.I2Caddr, **self.GeneralParms)
         self.EEPROM = EEPROM(self.Config[self.Side]["I2cBus"], self.EEPROM_I2Caddr)
-
-        self._LED = "SlowRed"  # fixme
+        self.Status = "absent"
+        logger.debug("WeighingRing.__init__() done")
 
     def connect(self):
         self.EEPROM.i2c_open()
@@ -49,7 +46,7 @@ class WeighingRing(ADS122C04):
             self.EEPROM.i2c_close()
             self.i2c_close()
             raise
-        print("on bus ", self.I2Cbus, "found weighing ring ", self.ID)
+        logger.info("on bus " + str(self.I2Cbus) + "found weighing ring " + str(self.ID))
         return True
 
 

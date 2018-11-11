@@ -44,8 +44,10 @@
   },
 
   "Head": {
+    "StayAlive": 0,
     "SerialNumber": "",
     "ValveType": "Rectifier",
+    "ValveGpio": 25,
     "WifiButtonGpio": 18,
     "LedGpio": {
       "Red": 20,
@@ -63,6 +65,7 @@
       "Bibip": [1, 0, 1, 0]
     },
     "LedInterval": 0.25,
-    "I2cRetries": 5
+    "I2cRetries": 5,
+    "StepsPerML": 179200
   }
 }

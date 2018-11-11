@@ -34,16 +34,6 @@ class ADS122C04:
         self.SetupParms = kwargs
         self.Temperature = None
 
-    # fixme
-    """ 
-    def __enter__(self):
-        self.i2c_open()
-        pass
-        
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.i2c_close()
-    """
-
     def i2c_open(self):
         self.Handle = self.pi.i2c_open(self.I2Cbus, self.I2Caddr)
         return True

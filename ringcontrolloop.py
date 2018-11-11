@@ -3,23 +3,28 @@ import time
 import config
 from contextlib import suppress
 
+from refill_log import logger
+
 
 class RingControlLoop(threading.Thread):
 
-    def __init__(self, ring, pump, leds, buttons, watchdog=None, interval=1):
-        print("init RingControlLoop ", ring.I2Cbus)
+    def __init__(self, ring, pump, leds, buttons, watchdog=None, interval=1, stayalive=True):
+        logger.info("RingControlLoop.__init__()  ring=" + str(ring))
         super(RingControlLoop, self).__init__()
         self.Ring = ring
-        self.Config = self.Ring.Config[self.Ring.Side]
+        self.RingConfig = self.Ring.Config[self.Ring.Side]
         self.Pump = pump
         self.Leds = leds
         self.Buttons = buttons
         self.Interval = interval
         self.Watchdog = watchdog
+        self.StayAlive = stayalive
         self.NextInterval = None
         self.Active = True
         self.CurrentID = None
         self.Ring.Status = "absent"
+        logger.debug("RingControlLoop.__init__() done ring = " + str(self.Ring.Side))
+
 
     def set_led(self, color, mode):
         with self.Leds.QLock:
@@ -36,10 +41,10 @@ class RingControlLoop(threading.Thread):
 
         """run the control loop for the weighing ring at a fixed interval
         (or as fast as possible) and update the status of the weighing ring"""
-        try:
-            print(self.Config)
-            while self.Active:
-
+        # print(self.RingConfig)
+        logger.debug("RingControlLoop.run()")
+        while self.Active:
+            try:
                 self.NextInterval = time.process_time() + self.Interval
                 #print("Watchdog:", self.Ring.Side, 10)
                 self.Watchdog.calm(side=self.Ring.Side, duration=10) # fixme
@@ -48,12 +53,16 @@ class RingControlLoop(threading.Thread):
                     if "absent" == self.Ring.Status:
                         # print(self.Ring.Side + " absent")
                         self.set_led("Red", "Off")
-                        self.Ring.connect()
-                        if self.CurrentID == self.Ring.ID:
-                            self.Ring.Status = "found"
-                            # print("refound ring ", self.Ring.ID)  # fixme
+                        try:
+                            self.Ring.connect()
+                        except ConnectionError:
+                            pass
                         else:
-                            self.Ring.Status = "foundnew"
+                            logger.debug("Ring" + self.Ring.ID + " found on " + self.Ring.Side)
+                            if self.CurrentID == self.Ring.ID:
+                                self.Ring.Status = "found"
+                            else:
+                                self.Ring.Status = "foundnew"
 
                     if "foundnew" == self.Ring.Status:  # fixme
                         self.Ring.initialize_adc()
@@ -73,86 +82,92 @@ class RingControlLoop(threading.Thread):
                             try:
                                 if self.Buttons.Q[self.Ring.Side] >= 1:
                                     self.Buttons.Q.pop(self.Ring.Side)
-                                    print("Zeroing...")
-                                    if self.Config["AbsoluteMinWeight"] < w < self.Config["AbsoluteMaxWeight"]:
-                                        self.Config.update({"Zero": wavg - 3})
-                                        self.Config.update({"SerialNumber": self.Ring.ID})
+                                    logger.info(self.Ring.Side +" zeroing...")
+                                    if self.RingConfig["AbsoluteMinWeight"] < w < self.RingConfig["AbsoluteMaxWeight"]:
+                                        self.RingConfig.update({"Zero": wavg - (self.RingConfig["PumpVolume"]/2)})
+                                        self.RingConfig.update({"SerialNumber": self.Ring.ID})
                                         config.save(self.Ring.Config)
-                                        print(self.Ring.Side + " New Zero: " + str(self.Config["Zero"]))
-                                        print(self.Ring.Side + " Zero: " + str(self.Config["Zero"]) + "g")
+                                        logger.info(self.Ring.Side + " New Zero: " + str(self.RingConfig["Zero"]))
                                     else:
-                                        self.Config.update({"Zero": 0})  # LED slowRed
-                                        print(self.Ring.Side + " Zeroing failed")
+                                        self.RingConfig.update({"Zero": 0})  # LED slowRed
+                                        logger.warning(self.Ring.Side + " zeroing failed")
                                 elif self.Buttons.Q[self.Ring.Side] >= 4:
                                     pass
                             except KeyError:
                                 pass
 
-                        if not self.Config["AbsoluteMinWeight"] < w < self.Config["AbsoluteMaxWeight"]:
-                            self.Pump.stop(self.Config["PumpDir"])
+                        if not self.RingConfig["AbsoluteMinWeight"] < w < self.RingConfig["AbsoluteMaxWeight"]:
+                            self.Pump.stop(self.RingConfig["PumpDir"])
                             self.set_led("Red", "Fast")
-                            # fixme self.Leds.Q.append((self.Ring.Side, "Beep", "Bibip"))
                             self.Ring.Mean.reset()
                             msg2 = "Column too light or to heavy -- check"  # LED fastRed
                             msg1 = (self.Ring.Side +
                                     " W: " + str(round(w, 1)) +
                                     " Wavg: " + str(round(wavg, 1)) +
-                                    " Zero: " + str(self.Config["Zero"]) +
+                                    " Zero: " + str(self.RingConfig["Zero"]) +
                                     " : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
-                        elif not (self.Config["Zero"] - self.Config["RelativeMinWeight"]
+                        elif not (self.RingConfig["Zero"] - self.RingConfig["RelativeMinWeight"]
                                   < w <
-                                  self.Config["Zero"] + self.Config["RelativeMaxWeight"]):
-                            self.Pump.stop(self.Config["PumpDir"])
+                                  self.RingConfig["Zero"] + self.RingConfig["RelativeMaxWeight"]):
+                            self.Pump.stop(self.RingConfig["PumpDir"])
                             self.set_led("Red", "Slow")
-                            # fixme self.Leds.Q.append((self.Ring.Side, "Beep", "Bip"))
                             self.Ring.Mean.reset()
                             msg2 = "Weight difference too large -- check & zero"  # LED slowRED
                             msg1 = (self.Ring.Side +
                                     " W: " + str(round(w, 1)) +
                                     " Wavg: " + str(round(wavg, 1)) +
-                                    " Zero: " + str(self.Config["Zero"]) +
+                                    " Zero: " + str(self.RingConfig["Zero"]) +
                                     " : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
                         else:
                             msg1 = (self.Ring.Side +
                                     " W: " + str(round(w, 1)) +
                                     " Wavg: " + str(round(wavg, 1)) +
-                                    " Zero: " + str(self.Config["Zero"]) +
+                                    " Zero: " + str(self.RingConfig["Zero"]) +
                                     " : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
 
-                            if wavg < self.Config["Zero"] and w < self.Config["Zero"] \
+                            if wavg < self.RingConfig["Zero"] and w < self.RingConfig["Zero"] \
                                     and self.Ring.Mean.Width > self.Ring.Mean.MinWidth:
                                 if not self.Pump.Lock.locked():
-                                    self.Pump.pump(self.Config["PumpVolume"]*self.Config["PumpDir"], self.Config["PumpRate"])
+                                    self.Pump.pump(self.RingConfig["PumpVolume"] * self.RingConfig["PumpDir"], self.RingConfig["PumpRate"])
                                 msg2 = "Pumping"  # LED slowGreen
                                 self.set_led("Green", "Slow")
-                                # fixme self.Leds.Q.append((self.Ring.Side, "Beep", "Off"))
 
                             else:
                                 msg2 = "ok"  # LED steadyGreen
                                 self.set_led("Green", "Steady")
-                                # fixme self.Leds.Q.append((self.Ring.Side, "Beep", "Off"))
 
                         print(str(round(time.time()/3600,3)),msg1, msg2)
+                        logger.info(msg1 + msg2)
 
                     if "lost" == self.Ring.Status:
                         self.Ring.stop()
                         self.Ring.Status = "absent"
                         self.Ring.LED = "Off"
 
-                except ConnectionError:
-                    self.Ring.Status = "absent"
+                except ConnectionError as exc:
+                    self.Ring.Status = "lost"
                     self.Ring.i2c_close()
                     self.Ring.EEPROM.i2c_close()
                     if self.Ring.Status != "absent":
-                        print("Ring lost on bus", self.Ring.I2Cbus)  # fixme
+                        print(self.Ring.Status, " lost ring", exc)
+                        logger.warning("Ring lost on bus" + str(self.Ring.I2Cbus))# fixme
                     # else: print("Ring absent on bus", self.Ring.I2Cbus)
+
                 with suppress(Exception):
                     time.sleep(self.NextInterval - time.process_time())
 
-        finally:
-            self.Pump.stop()
-            self.Ring.stop()
-            self.Active = False
+            except Exception as exc:
+                if self.StayAlive:
+                    # print(exc)
+                    logger.error("Exception:", exc)
+                    self.Pump.stop(dir=self.RingConfig["PumpDir"])
+                    self.Ring.stop()
+                    self.Ring.Status = "absent"
+                else:
+                    raise
+
+
+        self.Active = False
 
 
 

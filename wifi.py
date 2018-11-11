@@ -11,7 +11,6 @@ class Wifi:
         return wifi_active
 
     def set_enter_apmode_flag():
-
         pass
 
     @property
@@ -21,3 +20,13 @@ class Wifi:
     @EnterApModeFlag.setter
     def EnterApModeFlag(self, flag):
         return flag
+
+if __name__ == '__main__':
+
+    print(subprocess.check_output(['iwconfig']).decode('utf-8'))
+    w = Wifi()
+
+    if "Access Point: Not-Associated" in subprocess.check_output(['iwconfig']).decode('utf-8'):
+        print('Wifi is inactive')
+    else:
+        print('Wifi is active')

@@ -27,7 +27,7 @@ class RunningMean:
 class AdaptiveRunningMean:
 
 
-    def __init__(self, minwidth=1, maxwidth=64, fup=0.0, fdown = 0.0):
+    def __init__(self, minwidth=8, maxwidth=64, fup=0.0, fdown = 0.0):
         self.MinWidth = minwidth
         self.MaxWidth = maxwidth
         self.Width = 1

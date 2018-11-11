@@ -1,5 +1,5 @@
 import time
-import logging
+import refill_log
 
 import pigpio
 

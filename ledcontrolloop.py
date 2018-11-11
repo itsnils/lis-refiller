@@ -6,26 +6,20 @@ from itertools import cycle
 
 import pigpio
 import blupio
+from refill_log import logger
 
 
 class LedControlLoop(threading.Thread):
-    """ fixme
-    LedSeq = {"Off": (0,),
-              "Steady": (1,),
-              "Alive": (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0),
-              "Fast": (1, 0,),
-              "Slow": (1, 1, 1, 1, 1, 0, 0, 0, 0, 0,),
-              "Bip": (1, 0, 0, 0, 0, 0, 0, 0, 0),
-              "Bibip": (1, 0, 1, 0)
-              }"""
 
-    def __init__(self, conf, watchdog=None, interval=0.2):
+    def __init__(self, conf, watchdog=None, interval=0.2, stayalive=False):
+        logger.debug("LedControlLoop.__init__()")
         super().__init__()
         self.Config = conf
         self.Watchdog = watchdog
         self.Q = []
         self.QLock = threading.Lock()
         self.Interval = interval
+        self.StayAlive = stayalive
         self.pi = blupio.pi()
         self.Active = True
         self.LedSeq = self.Config["Head"]["LedSequence"]
@@ -38,26 +32,36 @@ class LedControlLoop(threading.Thread):
                     self.Leds[side].update({color: ["Off", cycle([0, ])]})
         print("Leds", self.Leds)
         self.clear()
+        logger.debug("LedControlLoop.__init__() done")
 
     def run(self):
+        logger.debug("LedControlLoop.run()")
         while self.Active:
-            self.NextInterval = time.process_time() + self.Interval
-            self.Watchdog.calm("Leds", 10)
-            with self.QLock:
-                for side, color, mode in self.Q:
-                    currentmode = self.Leds[side][color][0]
-                    if not mode == currentmode:
-                        seq = cycle(self.LedSeq[mode])
-                        self.Leds[side].update({color: [mode, seq]})
-                        # print("New LedSeq: ", side, color, mode, currentmode)
-                self.Q.clear()
-            for side in self.Leds:
-                for color in self.Leds[side]:
-                    self.pi.write(self.Config[side]["LedGpio"][color], next(self.Leds[side][color][1]))
-            with suppress(Exception):
-                time.sleep(self.NextInterval - time.process_time())
+            try:
+                self.NextInterval = time.process_time() + self.Interval
+                self.Watchdog.calm("Leds", 10)
+                with self.QLock:
+                    for side, color, mode in self.Q:
+                        currentmode = self.Leds[side][color][0]
+                        if not mode == currentmode:
+                            seq = cycle(self.LedSeq[mode])
+                            self.Leds[side].update({color: [mode, seq]})
+                            # print("New LedSeq: ", side, color, mode, currentmode)
+                    self.Q.clear()
+                for side in self.Leds:
+                    for color in self.Leds[side]:
+                        self.pi.write(self.Config[side]["LedGpio"][color], next(self.Leds[side][color][1]))
+                with suppress(Exception):
+                    time.sleep(self.NextInterval - time.process_time())
+            except Exception as exc:
+                if self.StayAlive:
+                    logger.warning("LedControlLoop.run() trying to recover on exception")
+                else:
+                    logger.error("LedControlLoop.run() exiting on exception")
+                    raise
 
     def stop(self):
+        logger.debug("LedControlLoop.stop()")
         self.clear()
 
     def clear(self):
@@ -76,6 +80,7 @@ class LedControlLoop(threading.Thread):
 
 
 if __name__ == "__main__":
+    logger.debug("LedControlLoop.__main__")
     Conf = config.load()
     try:
         L = LedControlLoop(Conf)

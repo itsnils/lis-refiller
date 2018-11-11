@@ -20,16 +20,14 @@ class WatchDog(threading.Thread):
 
         self.Interval = interval
         while self.Active:
+            break # fixme
             time.sleep(self.Interval)
             with self.Lock:
                 for side in self.ThreadList:
                     self.ThreadList.update({side: self.ThreadList[side] - self.Interval})
                     if self.ThreadList[side] < 0:
                         with self.Leds.QLock:
-                            self.Leds.Q.append("Head", "Blue", "Fast")
+                            self.Leds.Q.append(("Head", "Blue", "Slow"))
                     else:
                         # print(self.ThreadList)
                         pass
-
-
-
