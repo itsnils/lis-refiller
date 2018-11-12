@@ -128,7 +128,7 @@ if __name__ == '__main__':
                 with Buttons.QLock:
                     if len(Buttons.Q):
                         print("Button: ", Buttons.Q)
-                        try:  # fixme
+                        try:
                             if Buttons.Q["Left"] >= 4:
                                 Buttons.Q.pop("Left")
                                 wifi_configmode_flag = True

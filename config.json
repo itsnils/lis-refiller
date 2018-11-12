@@ -46,7 +46,7 @@
   "Head": {
     "StayAlive": 0,
     "SerialNumber": "",
-    "ValveType": "Rectifier",
+    "ValveType": "Switch",
     "ValveGpio": 25,
     "WifiButtonGpio": 18,
     "LedGpio": {
