@@ -10,7 +10,7 @@ class Wifi:
             wifi_active = False
         return wifi_active
 
-    def set_enter_apmode_flag():
+    def set_enter_apmode_flag(self):
         pass
 
     @property
@@ -19,7 +19,7 @@ class Wifi:
         return flag
     @EnterApModeFlag.setter
     def EnterApModeFlag(self, flag):
-        return flag
+        pass
 
 if __name__ == '__main__':
 

@@ -1,0 +1,18 @@
+xtodo: virtualenv
+
+todo: new button handler
+    sound click as waves
+
+todo: manual pumping
+    pump as long as button is pressed for more than 10s
+
+todo: adaptive logging
+    reduce logging frequency during stable phases
+
+todo: pump/weight plausibility check
+    error/beep when weight gain doesn't correspond to pumped volume
+
+todo: linux service implementation / shutdown sequence
+    https://approximateengineering.org/2017/04/running-python-as-a-linux-service/
+todo: transmission error display
+    red led should flicker on transmission error

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/pi/venv/bin/python
 
 import refill_log
 from refill_log import logger
@@ -16,6 +16,7 @@ from ringcontrolloop import RingControlLoop
 from buttonhandler import Buttons
 from ledcontrolloop import LedControlLoop
 from watchdog import WatchDog
+from getserial import getserial
 
 
 def set_led(color, mode):
@@ -28,7 +29,6 @@ def set_led(color, mode):
             Leds.Q.append(("Head", "Red", mode))
         else:
             Leds.Q.append(("Head", color, mode))
-
 
 def free_handles():
     for i in range(25, 127):
@@ -74,7 +74,7 @@ def check_wifi_state():
 
 if __name__ == '__main__':
 
-    logger.info("Refiller.py starting up")
+    logger.info("Refiller.py starting up, RPi serial number "+ str(getserial()))
 
     pi = blupio.pi()
 

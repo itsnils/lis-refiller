@@ -25,7 +25,6 @@ class RingControlLoop(threading.Thread):
         self.Ring.Status = "absent"
         logger.debug("RingControlLoop.__init__() done ring = " + str(self.Ring.Side))
 
-
     def set_led(self, color, mode):
         with self.Leds.QLock:
             if color == "Green":
@@ -46,8 +45,8 @@ class RingControlLoop(threading.Thread):
         while self.Active:
             try:
                 self.NextInterval = time.process_time() + self.Interval
-                #print("Watchdog:", self.Ring.Side, 10)
-                self.Watchdog.calm(side=self.Ring.Side, duration=10) # fixme
+                # print("Watchdog:", self.Ring.Side, 10)
+                self.Watchdog.calm(side=self.Ring.Side, duration=10)  # fixme
                 # print("Ring Status: ", self.Ring.Status, "on bus", self.Ring.I2Cbus, self.Ring.Handle)
                 try:
                     if "absent" == self.Ring.Status:
@@ -82,7 +81,7 @@ class RingControlLoop(threading.Thread):
                             try:
                                 if self.Buttons.Q[self.Ring.Side] >= 1:
                                     self.Buttons.Q.pop(self.Ring.Side)
-                                    logger.info(self.Ring.Side +" zeroing...")
+                                    logger.info(self.Ring.Side + " zeroing...")
                                     if self.RingConfig["AbsoluteMinWeight"] < w < self.RingConfig["AbsoluteMaxWeight"]:
                                         self.RingConfig.update({"Zero": wavg - (self.RingConfig["PumpVolume"]/2)})
                                         self.RingConfig.update({"SerialNumber": self.Ring.ID})
@@ -128,7 +127,9 @@ class RingControlLoop(threading.Thread):
                             if wavg < self.RingConfig["Zero"] and w < self.RingConfig["Zero"] \
                                     and self.Ring.Mean.Width > self.Ring.Mean.MinWidth:
                                 if not self.Pump.Lock.locked():
-                                    self.Pump.pump(self.RingConfig["PumpDir"], self.RingConfig["PumpVolume"], self.RingConfig["PumpRate"])
+                                    self.Pump.pump(self.RingConfig["PumpDir"],
+                                                   self.RingConfig["PumpVolume"],
+                                                   self.RingConfig["PumpRate"])
                                 msg2 = "Pumping"  # LED slowGreen
                                 self.set_led("Green", "Slow")
 
@@ -136,7 +137,7 @@ class RingControlLoop(threading.Thread):
                                 msg2 = "ok"  # LED steadyGreen
                                 self.set_led("Green", "Steady")
 
-                        print(str(round(time.time()/3600,3)),msg1, msg2)
+                        print(str(round(time.time()/3600, 3)), msg1, msg2)
                         logger.info(msg1 + msg2)
 
                     if "lost" == self.Ring.Status:
@@ -150,7 +151,7 @@ class RingControlLoop(threading.Thread):
                     self.Ring.EEPROM.i2c_close()
                     if self.Ring.Status != "absent":
                         print(self.Ring.Status, " lost ring", exc)
-                        logger.warning("Ring lost on bus" + str(self.Ring.I2Cbus))# fixme
+                        logger.warning("Ring lost on bus" + str(self.Ring.I2Cbus))  # fixme
                     # else: print("Ring absent on bus", self.Ring.I2Cbus)
 
                 with suppress(Exception):
@@ -160,15 +161,10 @@ class RingControlLoop(threading.Thread):
                 if self.StayAlive:
                     # print(exc)
                     logger.error("Exception:", exc)
-                    self.Pump.stop(dir=self.RingConfig["PumpDir"])
+                    self.Pump.stop(direction=self.RingConfig["PumpDir"])
                     self.Ring.stop()
                     self.Ring.Status = "absent"
                 else:
                     raise
 
-
         self.Active = False
-
-
-
-

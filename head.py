@@ -47,7 +47,7 @@ class Head:
 
 
     def __init__(self):
-        self.pi = pigpio.pi
+        self.pi = pigpio.pi()
 
         self.pi.set_glitch_filter(21, 100000)
         self.pi.set_glitch_filter(17, 100000)

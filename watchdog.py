@@ -20,7 +20,7 @@ class WatchDog(threading.Thread):
 
         self.Interval = interval
         while self.Active:
-            break # fixme watchdog deactivated
+            break  # fixme watchdog deactivated
             time.sleep(self.Interval)
             with self.Lock:
                 for side in self.ThreadList:

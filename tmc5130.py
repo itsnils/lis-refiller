@@ -42,7 +42,7 @@ class Motor:
     XTARGET = 0x2D
 
    
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         initializes the TMC5130 according to the datasheet example for positioning
         """

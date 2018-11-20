@@ -67,6 +67,23 @@
     "LedInterval": 0.25,
     "I2cRetries": 5,
     "StepsPerML": 179200,
-    "PumpDir": 1
+    "PumpDir": 1,
+    "TMC5130parms": {
+      "remark": "not yet implemented",
+      "GCONF": null,
+      "CHOPCONF": null,
+      "IHOLD_IRUN": null,
+      "A1": null,
+      "V1": null,
+      "D1": null,
+      "AMAX": null,
+      "DMAX": null,
+      "VMAX": null,
+      "VSTOP": null
+    },
+    "ADS122C04parms": {
+      "remark": "not yet implemented",
+      "GAIN": null
+    }
   }
 }
