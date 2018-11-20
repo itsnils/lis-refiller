@@ -17,11 +17,11 @@ class MC24AA025E48:
         self.pi = blupio.pi()
 
     def __enter__(self):
-        print(self.i2c_open())
+        if False: print(self.i2c_open())
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        print("Closing I2C handle:", self.Handle)
+        if False: print("Closing I2C handle:", self.Handle)
         self.i2c_close()
 
     def i2c_open(self):

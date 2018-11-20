@@ -12,7 +12,9 @@ todo: adaptive logging
 todo: pump/weight plausibility check
     error/beep when weight gain doesn't correspond to pumped volume
 
-todo: linux service implementation / shutdown sequence
+xtodo: linux service implementation / shutdown sequence
     https://approximateengineering.org/2017/04/running-python-as-a-linux-service/
+    instead of init.d, use systemd:
+    https://www.raspberrypi.org/documentation/linux/usage/systemd.md
 todo: transmission error display
     red led should flicker on transmission error

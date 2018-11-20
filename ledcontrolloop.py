@@ -30,12 +30,13 @@ class LedControlLoop(threading.Thread):
             for color in self.Config[side]["LedGpio"]:
                 if color not in self.Leds[side]:
                     self.Leds[side].update({color: ["Off", cycle([0, ])]})
-        print("Leds", self.Leds)
+                if False: print("Leds", self.Leds)
         self.clear()
         logger.debug("LedControlLoop.__init__() done")
 
     def run(self):
         logger.debug("LedControlLoop.run()")
+        self.Active = True
         while self.Active:
             try:
                 self.NextInterval = time.process_time() + self.Interval
@@ -61,13 +62,12 @@ class LedControlLoop(threading.Thread):
                     raise
 
     def stop(self):
+        self.Active = False
         logger.debug("LedControlLoop.stop()")
-        self.clear()
 
     def clear(self):
-        for side in self.Leds:
-            for color in self.Leds[side]:
-                self.pi.set_mode(self.Config[side]["LedGpio"][color], pigpio.OUTPUT)
+        for side in self.Config:
+            for color in self.Config[side]["LedGpio"]:
                 self.pi.write(self.Config[side]["LedGpio"][color], 0)
 
     def test(self, n=1):

@@ -18,7 +18,7 @@ class EEPROM(MC24AA025E48):
         self.ID = None
         self.RingType = None
 
-    def update(self, filepath='eeprom.json'):
+    def update(self, filepath='/home/pi/Refiller/eeprom.json'):
         """updates eeprom.json from the current values, updates EEPROM with new values from eeprom.json if present"""
         with open(filepath, "r") as f:
             deviceSpecific = json.load(f)
@@ -47,7 +47,7 @@ class EEPROM(MC24AA025E48):
                 # fixme json.dump(deviceSpecific, f, indent=4)
         return json.dumps(deviceSpecific, indent=4)
 
-    def build_filekey_from_template(self, filepath='eeprom.json'):
+    def build_filekey_from_template(self, filepath='/home/pi/Refiller/eeprom.json'):
         """build eeprom.json key entry for hardware ID from EEPROM values and template"""
         with open(filepath, "r") as f:
             deviceSpecific = json.load(f)

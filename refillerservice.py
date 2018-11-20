@@ -1,5 +1,4 @@
 #!/home/pi/venv/bin/python
-
 import grp
 import os
 import pwd

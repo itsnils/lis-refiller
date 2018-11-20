@@ -1,0 +1,19 @@
+# sudo chmod a+x /home/pi/Refiller/refiller.py
+# sudo cp /home/pi/Refiller/refiller.service /etc/systemd/system/refiller.service
+# sudo systemctl start refiller.service
+# sudo systemctl enable refiller.service
+
+[Unit]
+Description=refiller
+After=network.target
+
+[Service]
+ExecStart=/home/pi/Refiller/refiller.py
+WorkingDirectory=/home/pi/Refiller
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target

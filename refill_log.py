@@ -5,7 +5,7 @@ import json
 
 # logging.handlers.RotatingFileHandler('refiller.log', mode="a", maxBytes=10e6, backupCount=5,encoding='utf-8')
 
-with open("log_config.json", 'r') as logging_configuration_file:
+with open("/home/pi/Refiller/log_config.json", 'r') as logging_configuration_file:
     config_dict = json.load(logging_configuration_file)
 
 logging.config.dictConfig(config_dict)

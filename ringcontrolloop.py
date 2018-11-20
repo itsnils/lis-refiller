@@ -42,6 +42,7 @@ class RingControlLoop(threading.Thread):
         (or as fast as possible) and update the status of the weighing ring"""
         # print(self.RingConfig)
         logger.debug("RingControlLoop.run()")
+        self.Active = True
         while self.Active:
             try:
                 self.NextInterval = time.process_time() + self.Interval
@@ -137,7 +138,7 @@ class RingControlLoop(threading.Thread):
                                 msg2 = "ok"  # LED steadyGreen
                                 self.set_led("Green", "Steady")
 
-                        print(str(round(time.time()/3600, 3)), msg1, msg2)
+                        if False: print(str(round(time.time()/3600, 3)), msg1, msg2)
                         logger.info(msg1 + msg2)
 
                     if "lost" == self.Ring.Status:
@@ -150,7 +151,7 @@ class RingControlLoop(threading.Thread):
                     self.Ring.i2c_close()
                     self.Ring.EEPROM.i2c_close()
                     if self.Ring.Status != "absent":
-                        print(self.Ring.Status, " lost ring", exc)
+                        if False: print(self.Ring.Status, " lost ring", exc)
                         logger.warning("Ring lost on bus" + str(self.Ring.I2Cbus))  # fixme
                     # else: print("Ring absent on bus", self.Ring.I2Cbus)
 
@@ -167,4 +168,7 @@ class RingControlLoop(threading.Thread):
                 else:
                     raise
 
+        self.Active = False
+
+    def stop(self):
         self.Active = False
