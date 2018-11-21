@@ -10,7 +10,7 @@
     "handlers": {
         "file_handler": {
             "class": "logging.handlers.RotatingFileHandler",
-            "level": "INFO",
+            "level": "DEBUG",
             "formatter": "simple",
             "filename": "refiller.log",
             "maxBytes": 20e6,

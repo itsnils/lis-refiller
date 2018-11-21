@@ -23,7 +23,7 @@ from watchdog import WatchDog
 from getserial import getserial
 from refill_log import logger
 
-logger.info("Refiller.py starting up, RPi serial number "+ str(getserial()))
+logger.info("Refiller.py starting up, RPi serial number {}".format(str(getserial())))
 
 
 # SERVICE FUNCTIONS

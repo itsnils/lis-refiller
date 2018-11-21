@@ -46,7 +46,7 @@ class WeighingRing(ADS122C04):
             self.EEPROM.i2c_close()
             self.i2c_close()
             raise
-        logger.info("on bus " + str(self.I2Cbus) + "found weighing ring " + str(self.ID))
+        logger.info("on bus {} found weighing ring {}".format(str(self.I2Cbus), str(self.ID)))
         return True
 
 

@@ -9,7 +9,11 @@ from refill_log import logger
 class RingControlLoop(threading.Thread):
 
     def __init__(self, ring, pump, leds, buttons, watchdog=None, interval=1, stayalive=True):
-        logger.info("RingControlLoop.__init__()  ring=" + str(ring))
+        logger.info(
+            "RingControlLoop.__init__()  ring= {}".format(
+                str(ring)
+            )
+        )
         super(RingControlLoop, self).__init__()
         self.Ring = ring
         self.RingConfig = self.Ring.Config[self.Ring.Side]
@@ -82,12 +86,20 @@ class RingControlLoop(threading.Thread):
                             try:
                                 if self.Buttons.Q[self.Ring.Side] >= 1:
                                     self.Buttons.Q.pop(self.Ring.Side)
-                                    logger.info(self.Ring.Side + " zeroing...")
+                                    logger.info(
+                                        "{:6} zeroing...".format(
+                                            self.Ring.Side
+                                        )
+                                    )
                                     if self.RingConfig["AbsoluteMinWeight"] < w < self.RingConfig["AbsoluteMaxWeight"]:
                                         self.RingConfig.update({"Zero": wavg - (self.RingConfig["PumpVolume"]/2)})
                                         self.RingConfig.update({"SerialNumber": self.Ring.ID})
                                         config.save(self.Ring.Config)
-                                        logger.info(self.Ring.Side + " New Zero: " + str(self.RingConfig["Zero"]))
+                                        logger.info(
+                                            "{:6}   New Zero: {: 6.1f}".format(
+                                            self.Ring.Side, self.RingConfig["Zero"]
+                                            )
+                                        )
                                     else:
                                         self.RingConfig.update({"Zero": 0})  # LED slowRed
                                         logger.warning(self.Ring.Side + " zeroing failed")
@@ -101,11 +113,9 @@ class RingControlLoop(threading.Thread):
                             self.set_led("Red", "Fast")
                             self.Ring.Mean.reset()
                             msg2 = "Column too light or to heavy -- check"  # LED fastRed
-                            msg1 = (self.Ring.Side +
-                                    " W: " + str(round(w, 1)) +
-                                    " Wavg: " + str(round(wavg, 1)) +
-                                    " Zero: " + str(self.RingConfig["Zero"]) +
-                                    " : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
+                            msg1 = "{:6}   W: {: 6.1f}   Wavg: {: 6.1f}   Zero: {: 6.1f} : {: 5.1f}°C  {}".format(
+                                self.Ring.Side, w, wavg, self.RingConfig["Zero"], t, self.Buttons.Q
+                            )
                         elif not (self.RingConfig["Zero"] - self.RingConfig["RelativeMinWeight"]
                                   < w <
                                   self.RingConfig["Zero"] + self.RingConfig["RelativeMaxWeight"]):
@@ -113,17 +123,13 @@ class RingControlLoop(threading.Thread):
                             self.set_led("Red", "Slow")
                             self.Ring.Mean.reset()
                             msg2 = "Weight difference too large -- check & zero"  # LED slowRED
-                            msg1 = (self.Ring.Side +
-                                    " W: " + str(round(w, 1)) +
-                                    " Wavg: " + str(round(wavg, 1)) +
-                                    " Zero: " + str(self.RingConfig["Zero"]) +
-                                    " : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
+                            msg1 = "{:6}   W: {: 6.1f}   Wavg: {: 6.1f}   Zero: {: 6.1f} : {: 5.1f}°C  {}".format(
+                                self.Ring.Side, w, wavg, self.RingConfig["Zero"], t, self.Buttons.Q
+                            )
                         else:
-                            msg1 = (self.Ring.Side +
-                                    " W: " + str(round(w, 1)) +
-                                    " Wavg: " + str(round(wavg, 1)) +
-                                    " Zero: " + str(self.RingConfig["Zero"]) +
-                                    " : " + str(round(t, 1)) + "°C " + str(self.Buttons.Q))
+                            msg1 = "{:6}   W: {: 6.1f}   Wavg: {: 6.1f}   Zero: {: 6.1f} : {: 5.1f}°C  {}".format(
+                                self.Ring.Side, w, wavg, self.RingConfig["Zero"], t, self.Buttons.Q
+                            )
 
                             if wavg < self.RingConfig["Zero"] and w < self.RingConfig["Zero"] \
                                     and self.Ring.Mean.Width > self.Ring.Mean.MinWidth:
@@ -151,8 +157,9 @@ class RingControlLoop(threading.Thread):
                     self.Ring.i2c_close()
                     self.Ring.EEPROM.i2c_close()
                     if self.Ring.Status != "absent":
-                        if False: print(self.Ring.Status, " lost ring", exc)
-                        logger.warning("Ring lost on bus" + str(self.Ring.I2Cbus))  # fixme
+                        if False:
+                            print(self.Ring.Status, " lost ring", exc)
+                        logger.warning("Ring lost on bus {}".format(str(self.Ring.I2Cbus))) # fixme
                     # else: print("Ring absent on bus", self.Ring.I2Cbus)
 
                 with suppress(Exception):
