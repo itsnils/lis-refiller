@@ -11,7 +11,16 @@ class Pump(tmc5130.Pump):
         self.Lock = threading.Lock()
         self.CurrentDir = 0
         logger.info("Pump.__init__()")
+        self.Temperature = self.rpi_temperature()
         return
+
+    def rpi_temperature(self):
+        """ returns the Raspberry Pi internal temperature sensor"""
+        try:
+            self.Temperature = int(open('/sys/class/thermal/thermal_zone0/temp').read()) / 1e3
+            return self.Temperature
+        except:
+            return -999.9
 
     def stop(self, direction=None):
         if direction == self.CurrentDir or direction is None:
@@ -24,6 +33,10 @@ class Pump(tmc5130.Pump):
         """ pumps the desired volume at the desired flow rate (optional)
             updates the volume pumped per direction/channel so far, even if vol and flow are None
         """
+
+        t = self.rpi_temperature()
+        if vol is not 0 and t > self.Config["Head"]["MaxTemp"]:
+            return self.TotalP, self.TotalM
         if self.Config["Head"]["ValveType"] == "Rectifier":
             if vol is not None:
                 steps = int(direction * vol * self.F)

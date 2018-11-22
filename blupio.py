@@ -1,10 +1,11 @@
 import time
-import refill_log
+from refill_log import logger
 
 import pigpio
 
-retries=3
-wait=0.01
+retries = 3
+wait = 0.01
+
 
 def retry(func):
     def wrapper(*args, **kwargs):
@@ -12,16 +13,19 @@ def retry(func):
             try:
                 return func(*args, **kwargs)
             except pigpio.error:
+                pi.error_count += 1
                 if i >= retries:
-                    # print("giving up, ", func.__name__)
+                    # logger.error("I2C transmission error, giving up, function {}, count# {:d}".format(str(func.__name__), pi.error_count))
                     raise ConnectionError
                 else:
+                    # logger.warning("I2C transmission error, retry# {:d}, count# {:d}".format(i+1, pi.error_count))
                     time.sleep(wait)
-                    # print(i+1, "th retry, ", func.__name__)
                     continue
     return wrapper
 
 class pi(pigpio.pi):
+
+    error_count = 0
 
     @retry
     def i2c_write_device(self, handle, data):

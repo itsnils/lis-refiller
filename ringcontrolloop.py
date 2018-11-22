@@ -9,11 +9,7 @@ from refill_log import logger
 class RingControlLoop(threading.Thread):
 
     def __init__(self, ring, pump, leds, buttons, watchdog=None, interval=1, stayalive=True):
-        logger.info(
-            "RingControlLoop.__init__()  ring= {}".format(
-                str(ring)
-            )
-        )
+        logger.info("RingControlLoop.__init__()  ring= {}".format(str(ring)))
         super(RingControlLoop, self).__init__()
         self.Ring = ring
         self.RingConfig = self.Ring.Config[self.Ring.Side]
@@ -47,6 +43,7 @@ class RingControlLoop(threading.Thread):
         # print(self.RingConfig)
         logger.debug("RingControlLoop.run()")
         self.Active = True
+        skip_log = 0
         while self.Active:
             try:
                 self.NextInterval = time.process_time() + self.Interval
@@ -86,20 +83,13 @@ class RingControlLoop(threading.Thread):
                             try:
                                 if self.Buttons.Q[self.Ring.Side] >= 1:
                                     self.Buttons.Q.pop(self.Ring.Side)
-                                    logger.info(
-                                        "{:6} zeroing...".format(
-                                            self.Ring.Side
-                                        )
-                                    )
+                                    logger.info("{:6} zeroing...".format(self.Ring.Side))
                                     if self.RingConfig["AbsoluteMinWeight"] < w < self.RingConfig["AbsoluteMaxWeight"]:
                                         self.RingConfig.update({"Zero": wavg - (self.RingConfig["PumpVolume"]/2)})
                                         self.RingConfig.update({"SerialNumber": self.Ring.ID})
                                         config.save(self.Ring.Config)
-                                        logger.info(
-                                            "{:6}   New Zero: {: 6.1f}".format(
-                                            self.Ring.Side, self.RingConfig["Zero"]
-                                            )
-                                        )
+                                        logger.info("{:6}   New Zero: {: 6.1f}"
+                                                    .format(self.Ring.Side, self.RingConfig["Zero"]))
                                     else:
                                         self.RingConfig.update({"Zero": 0})  # LED slowRed
                                         logger.warning(self.Ring.Side + " zeroing failed")
@@ -108,44 +98,53 @@ class RingControlLoop(threading.Thread):
                             except KeyError:
                                 pass
 
+                        msg1 = "{:6}   W: {:6.1f} g   Wavg: {:6.1f} g   Zero: {:6.1f} g   Ring {:5.1f} °C   Head {:5.1f} °C   I2C_errors {:<7d}  {}"\
+                            .format(self.Ring.Side, w, wavg, self.RingConfig["Zero"],
+                                    t, self.Pump.rpi_temperature(), self.Ring.pi.error_count, self.Buttons.Q)
+
                         if not self.RingConfig["AbsoluteMinWeight"] < w < self.RingConfig["AbsoluteMaxWeight"]:
+                            # Weight is out of range
                             self.Pump.stop(self.RingConfig["PumpDir"])
                             self.set_led("Red", "Fast")
                             self.Ring.Mean.reset()
                             msg2 = "Column too light or to heavy -- check"  # LED fastRed
-                            msg1 = "{:6}   W: {: 6.1f}   Wavg: {: 6.1f}   Zero: {: 6.1f} : {: 5.1f}°C  {}".format(
-                                self.Ring.Side, w, wavg, self.RingConfig["Zero"], t, self.Buttons.Q
-                            )
+                            skip_log = 0
                         elif not (self.RingConfig["Zero"] - self.RingConfig["RelativeMinWeight"]
                                   < w <
                                   self.RingConfig["Zero"] + self.RingConfig["RelativeMaxWeight"]):
+                            # Weight deviates too much from zero
                             self.Pump.stop(self.RingConfig["PumpDir"])
                             self.set_led("Red", "Slow")
                             self.Ring.Mean.reset()
                             msg2 = "Weight difference too large -- check & zero"  # LED slowRED
-                            msg1 = "{:6}   W: {: 6.1f}   Wavg: {: 6.1f}   Zero: {: 6.1f} : {: 5.1f}°C  {}".format(
-                                self.Ring.Side, w, wavg, self.RingConfig["Zero"], t, self.Buttons.Q
-                            )
+                            skip_log = 0
                         else:
-                            msg1 = "{:6}   W: {: 6.1f}   Wavg: {: 6.1f}   Zero: {: 6.1f} : {: 5.1f}°C  {}".format(
-                                self.Ring.Side, w, wavg, self.RingConfig["Zero"], t, self.Buttons.Q
-                            )
-
+                            # weight is plausible
                             if wavg < self.RingConfig["Zero"] and w < self.RingConfig["Zero"] \
                                     and self.Ring.Mean.Width > self.Ring.Mean.MinWidth:
-                                if not self.Pump.Lock.locked():
-                                    self.Pump.pump(self.RingConfig["PumpDir"],
-                                                   self.RingConfig["PumpVolume"],
-                                                   self.RingConfig["PumpRate"])
-                                msg2 = "Pumping"  # LED slowGreen
+                                # need for refill detected
+                                if self.Pump.rpi_temperature() < self.Ring.Config["Head"]["MaxTemp"]:
+                                    # pump temperature ok
+                                    if not self.Pump.Lock.locked():
+                                        self.Pump.pump(self.RingConfig["PumpDir"],
+                                                       self.RingConfig["PumpVolume"],
+                                                       self.RingConfig["PumpRate"])
+                                    msg2 = "Pumping"  # LED slowGreen
+                                else:
+                                    # pump temperature too high
+                                    msg2 = "Pump too hot, pumping deferred"
+                                skip_log = 0
                                 self.set_led("Green", "Slow")
-
                             else:
+                                # no need to refill
                                 msg2 = "ok"  # LED steadyGreen
                                 self.set_led("Green", "Steady")
 
-                        if False: print(str(round(time.time()/3600, 3)), msg1, msg2)
-                        logger.info(msg1 + msg2)
+                        if skip_log <= 0:
+                            logger.info(msg1 + msg2)
+                            skip_log = 30
+                        else:
+                            skip_log -= 1
 
                     if "lost" == self.Ring.Status:
                         self.Ring.stop()
@@ -157,17 +156,13 @@ class RingControlLoop(threading.Thread):
                     self.Ring.i2c_close()
                     self.Ring.EEPROM.i2c_close()
                     if self.Ring.Status != "absent":
-                        if False:
-                            print(self.Ring.Status, " lost ring", exc)
                         logger.warning("Ring lost on bus {}".format(str(self.Ring.I2Cbus))) # fixme
-                    # else: print("Ring absent on bus", self.Ring.I2Cbus)
 
                 with suppress(Exception):
                     time.sleep(self.NextInterval - time.process_time())
 
             except Exception as exc:
                 if self.StayAlive:
-                    # print(exc)
                     logger.error("Exception:", exc)
                     self.Pump.stop(direction=self.RingConfig["PumpDir"])
                     self.Ring.stop()

@@ -49,7 +49,6 @@ class WeighingRing(ADS122C04):
         logger.info("on bus {} found weighing ring {}".format(str(self.I2Cbus), str(self.ID)))
         return True
 
-
     def stop(self):
         self.i2c_close()
 

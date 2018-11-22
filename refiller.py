@@ -152,6 +152,12 @@ def check_wifi_state():
         else:
             return "connected"
 
+def rpi_temperature():
+    """ returns the Raspberry Pi internal temperature sensor"""
+    try:
+        return int(open('/sys/class/thermal/thermal_zone0/temp').read()) / 1e3
+    except:
+        return -999.9
 
 
 pi = blupio.pi()
@@ -238,7 +244,12 @@ while Active:
                     Leds.Q.append(["Head", "Blue", "Off"])
 
         # set head status LED
-        if not Pump.arrived():
+        rpi_temp = Pump.rpi_temperature()
+        max_rpi_temp = Config["Head"]["MaxTemp"]
+        if rpi_temp > max_rpi_temp:
+            set_led("Red", "Fast")
+            logger.warning("Head temperature {:5.1f}°C > MaxTemp: {:5.1f}°C".format(rpi_temp, max_rpi_temp))
+        elif not Pump.arrived():
             set_led("Green", "Slow")
             if not Pump.Lock.locked():
                 Pump.Lock.acquire()
@@ -253,7 +264,6 @@ while Active:
     except Exception as exc:
         if StayAlive:
             logger.error("Trying to go on after Exception" + str(exc))
-            if False: print(exc)
         else:
             logger.error("Exiting on Exception" + str(exc))
             beep(Config, 1)

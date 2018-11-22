@@ -68,6 +68,8 @@
     "I2cRetries": 5,
     "StepsPerML": 179200,
     "PumpDir": 1,
+    "ManualPumpRate": 0.3,
+    "MaxTemp": 65,
     "TMC5130parms": {
       "remark": "not yet implemented",
       "GCONF": null,
