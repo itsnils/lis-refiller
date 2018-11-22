@@ -98,7 +98,7 @@ class RingControlLoop(threading.Thread):
                             except KeyError:
                                 pass
 
-                        msg1 = "{:6}   W: {:6.1f} g   Wavg: {:6.1f} g   Zero: {:6.1f} g   Ring {:5.1f} °C   Head {:5.1f} °C   I2C_errors {:<7d}  {}"\
+                        msg1 = "{:6}  W{:6.1f} g  Wavg{:6.1f} g  Zero{:6.1f} g  Ring {:5.1f} °C  Head {:5.1f} °C  I2Cerr {:<7d}  {}"\
                             .format(self.Ring.Side, w, wavg, self.RingConfig["Zero"],
                                     t, self.Pump.rpi_temperature(), self.Ring.pi.error_count, self.Buttons.Q)
 

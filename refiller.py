@@ -213,10 +213,9 @@ while Active:
         if not Buttons.QLock.locked():
             with Buttons.QLock:
                 if len(Buttons.Q):
-                    if False: print("Button: ", Buttons.Q)
                     try:
-                        if Buttons.Q["Left"] >= 4:
-                            Buttons.Q.pop("Left")
+                        if Buttons.Q["Head"] >= 1:
+                            Buttons.Q.pop("Head")
                             wifi_configmode_flag = True
                             with Leds.QLock:
                                 Leds.Q.append(("Head", "Blue", "Fast"))
@@ -226,9 +225,6 @@ while Active:
                             with open("/home/pi/Refiller/wifi_conf_flag", "w") as f:
                                 f.write("start wifi configuration")
                                 logger.debug("Setting wifi_conf_flag")
-                        else:
-                            # put other double button actions here
-                            Buttons.Q.pop("Left")
                     except KeyError:
                         pass
 

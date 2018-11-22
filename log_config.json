@@ -3,18 +3,18 @@
     "disable_existing_loggers": false,
     "formatters": {
         "simple": {
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            "format": "%(asctime)s %(levelname)s  %(message)s"
         }
     },
 
     "handlers": {
         "file_handler": {
             "class": "logging.handlers.RotatingFileHandler",
-            "level": "DEBUG",
+            "level": "INFO",
             "formatter": "simple",
             "filename": "refiller.log",
             "maxBytes": 20e6,
-            "backupCount": 3,
+            "backupCount": 4,
             "encoding": "utf8"
         }
     },
