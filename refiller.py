@@ -144,7 +144,7 @@ def check_wifi_state():
     except Exception as exc:
         logger.error("Wifi Dection failed:" + str(exc))
     else:
-        logger.debug('iwconfig' + str(iwconfig_out))
+        # logger.debug('iwconfig' + str(iwconfig_out))
         if "Mode:Master" in iwconfig_out:
             return "ap_mode"
         elif ("Access Point: Not-Associated" in iwconfig_out) or ("ESSID:off" in iwconfig_out):
@@ -159,6 +159,8 @@ def rpi_temperature():
     except:
         return -999.9
 
+def stop():
+    shutdown()
 
 pi = blupio.pi()
 
@@ -209,7 +211,7 @@ Active = True
 while Active:
     try:
         time.sleep(1)
-        Watchdog.calm("Head", 10)
+        Watchdog.calm("Head", 20)
         if not Buttons.QLock.locked():
             with Buttons.QLock:
                 if len(Buttons.Q):

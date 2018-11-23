@@ -44,12 +44,11 @@ class RingControlLoop(threading.Thread):
         logger.debug("RingControlLoop.run()")
         self.Active = True
         skip_log = 0
+        self.Watchdog.calm(self.Ring.Side, duration=20)  # fixme
         while self.Active:
             try:
                 self.NextInterval = time.process_time() + self.Interval
-                # print("Watchdog:", self.Ring.Side, 10)
-                self.Watchdog.calm(side=self.Ring.Side, duration=10)  # fixme
-                # print("Ring Status: ", self.Ring.Status, "on bus", self.Ring.I2Cbus, self.Ring.Handle)
+                self.Watchdog.calm(self.Ring.Side, duration=20)
                 try:
                     if "absent" == self.Ring.Status:
                         # print(self.Ring.Side + " absent")
@@ -85,11 +84,17 @@ class RingControlLoop(threading.Thread):
                                     self.Buttons.Q.pop(self.Ring.Side)
                                     logger.info("{:6} zeroing...".format(self.Ring.Side))
                                     if self.RingConfig["AbsoluteMinWeight"] < w < self.RingConfig["AbsoluteMaxWeight"]:
+                                        # Zero
+                                        self.Ring.pi.write(self.Ring.Config["Head"]["BuzzerGpio"], 1)  # fixme preliminary buzzer signal
                                         self.RingConfig.update({"Zero": wavg - (self.RingConfig["PumpVolume"]/2)})
                                         self.RingConfig.update({"SerialNumber": self.Ring.ID})
+                                        self.Ring.pi.write(self.Ring.Config["Head"]["BuzzerGpio"], 0)  # fixme preliminary buzzer signal
+                                        time.sleep(0.2)   # fixme preliminary buzzer signal
                                         config.save(self.Ring.Config)
+                                        self.Ring.pi.write(self.Ring.Config["Head"]["BuzzerGpio"], 1)  # fixme preliminary buzzer signal
                                         logger.info("{:6}   New Zero: {: 6.1f}"
                                                     .format(self.Ring.Side, self.RingConfig["Zero"]))
+                                        self.Ring.pi.write(self.Ring.Config["Head"]["BuzzerGpio"], 0)  # fixme preliminary buzzer signal
                                     else:
                                         self.RingConfig.update({"Zero": 0})  # LED slowRed
                                         logger.warning(self.Ring.Side + " zeroing failed")
@@ -129,10 +134,10 @@ class RingControlLoop(threading.Thread):
                                         self.Pump.pump(self.RingConfig["PumpDir"],
                                                        self.RingConfig["PumpVolume"],
                                                        self.RingConfig["PumpRate"])
-                                    msg2 = "Pumping"  # LED slowGreen
+                                    msg2 = "Refill"  # LED slowGreen
                                 else:
                                     # pump temperature too high
-                                    msg2 = "Pump too hot, pumping deferred"
+                                    msg2 = "Pump too hot, refill deferred"
                                 skip_log = 0
                                 self.set_led("Green", "Slow")
                             else:

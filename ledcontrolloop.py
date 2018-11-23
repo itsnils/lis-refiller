@@ -30,7 +30,6 @@ class LedControlLoop(threading.Thread):
             for color in self.Config[side]["LedGpio"]:
                 if color not in self.Leds[side]:
                     self.Leds[side].update({color: ["Off", cycle([0, ])]})
-                if False: print("Leds", self.Leds)
         self.clear()
         logger.debug("LedControlLoop.__init__() done")
 
@@ -40,7 +39,7 @@ class LedControlLoop(threading.Thread):
         while self.Active:
             try:
                 self.NextInterval = time.process_time() + self.Interval
-                self.Watchdog.calm("Leds", 10)
+                self.Watchdog.calm("LedControlLoop", 20)
                 with self.QLock:
                     for side, color, mode in self.Q:
                         currentmode = self.Leds[side][color][0]
