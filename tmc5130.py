@@ -234,3 +234,19 @@ class Pump(Motor):
         self.Oldpos = self.move(relpos=0)
 
 
+if __name__ == '__main__':
+
+    m = Motor()
+
+    for i in range(10):
+
+        print("Testing motor...")
+
+        m.moveby(50000, 50000)
+        while not m.arrived():
+            time.sleep(.1)
+        m.moveby(-50000, 50000)
+        while not m.arrived():
+            time.sleep(0.1)
+
+        print("done")

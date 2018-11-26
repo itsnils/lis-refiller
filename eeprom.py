@@ -23,25 +23,26 @@ class EEPROM(MC24AA025E48):
         with open(filepath, "r") as f:
             deviceSpecific = json.load(f)
             ringid = self.read_id()
-            if ringid in deviceSpecific:
-                self.write(0, b'xyz')  # write 'LIS' to addr 0-2
-                for key in deviceSpecific[ringid]:
-                    addr, dtype = deviceSpecific[ringid][key][0:2]
-                    if dtype == "string":
-                        deviceSpecific[ringid][key][2] = self.read_string(addr)
+            if ringid not in deviceSpecific:
+                ringid = "TEMPLATE"
+            self.write(0, b'xyz')  # write 'LIS' to addr 0-2
+            for key in deviceSpecific[ringid]:
+                addr, dtype = deviceSpecific[ringid][key][0:2]
+                if dtype == "string":
+                    deviceSpecific[ringid][key][2] = self.read_string(addr)
+                elif dtype == "byte":
+                    deviceSpecific[ringid][key][2] = self.read_byte(addr)
+                elif dtype == "float32":
+                    deviceSpecific[ringid][key][2] = self.read_float32(addr)
+                if len(deviceSpecific[ringid][key]) == 4:
+                    addr, dtype, old, new = deviceSpecific[ringid][key]
+                    if dtype == "string" and len(new) in range(1, 16):
+                        self.write_string(addr, new)
                     elif dtype == "byte":
-                        deviceSpecific[ringid][key][2] = self.read_byte(addr)
+                        self.write_byte(addr, int(new))
                     elif dtype == "float32":
-                        deviceSpecific[ringid][key][2] = self.read_float32(addr)
-                    if len(deviceSpecific[ringid][key]) == 4:
-                        addr, dtype, old, new = deviceSpecific[ringid][key]
-                        if dtype == "string" and len(new) in range(1, 16):
-                            self.write_string(addr, new)
-                        elif dtype == "byte":
-                            self.write_byte(addr, int(new))
-                        elif dtype == "float32":
-                            self.write_float32(addr, new)
-                        deviceSpecific[ringid][key].pop(-2)
+                        self.write_float32(addr, new)
+                    deviceSpecific[ringid][key].pop(-2)
                 self.write(0, b'LIS')  # write 'LIS' to addr 0-2
         # with open(filepath, "w") as f:
                 # fixme json.dump(deviceSpecific, f, indent=4)
